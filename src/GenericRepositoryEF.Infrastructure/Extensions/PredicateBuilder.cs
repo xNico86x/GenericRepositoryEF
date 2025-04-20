@@ -3,15 +3,15 @@ using System.Linq.Expressions;
 namespace GenericRepositoryEF.Infrastructure.Extensions
 {
     /// <summary>
-    /// Builder for creating predicates.
+    /// Builder for predicates.
     /// </summary>
     public static class PredicateBuilder
     {
         /// <summary>
         /// Creates a predicate that always returns true.
         /// </summary>
-        /// <typeparam name="T">The type of the parameter in the predicate.</typeparam>
-        /// <returns>A predicate that always returns true.</returns>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <returns>The predicate.</returns>
         public static Expression<Func<T, bool>> True<T>()
         {
             return param => true;
@@ -20,48 +20,49 @@ namespace GenericRepositoryEF.Infrastructure.Extensions
         /// <summary>
         /// Creates a predicate that always returns false.
         /// </summary>
-        /// <typeparam name="T">The type of the parameter in the predicate.</typeparam>
-        /// <returns>A predicate that always returns false.</returns>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <returns>The predicate.</returns>
         public static Expression<Func<T, bool>> False<T>()
         {
             return param => false;
         }
 
         /// <summary>
-        /// Combines two predicates with an OR operation.
+        /// Combines two predicates with an "or" operation.
         /// </summary>
-        /// <typeparam name="T">The type of the parameter in the predicate.</typeparam>
-        /// <param name="expr1">The first predicate.</param>
-        /// <param name="expr2">The second predicate.</param>
-        /// <returns>A predicate that combines the two input predicates with an OR operation.</returns>
-        public static Expression<Func<T, bool>> Or<T>(this Expression<Func<T, bool>> expr1, Expression<Func<T, bool>> expr2)
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <param name="first">The first predicate.</param>
+        /// <param name="second">The second predicate.</param>
+        /// <returns>The combined predicate.</returns>
+        public static Expression<Func<T, bool>> Or<T>(this Expression<Func<T, bool>> first, Expression<Func<T, bool>> second)
         {
-            var invokedExpr = Expression.Invoke(expr2, expr1.Parameters);
-            return Expression.Lambda<Func<T, bool>>(Expression.OrElse(expr1.Body, invokedExpr), expr1.Parameters);
+            var invokedExpression = Expression.Invoke(second, first.Parameters);
+            return Expression.Lambda<Func<T, bool>>(Expression.OrElse(first.Body, invokedExpression), first.Parameters);
         }
 
         /// <summary>
-        /// Combines two predicates with an AND operation.
+        /// Combines two predicates with an "and" operation.
         /// </summary>
-        /// <typeparam name="T">The type of the parameter in the predicate.</typeparam>
-        /// <param name="expr1">The first predicate.</param>
-        /// <param name="expr2">The second predicate.</param>
-        /// <returns>A predicate that combines the two input predicates with an AND operation.</returns>
-        public static Expression<Func<T, bool>> And<T>(this Expression<Func<T, bool>> expr1, Expression<Func<T, bool>> expr2)
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <param name="first">The first predicate.</param>
+        /// <param name="second">The second predicate.</param>
+        /// <returns>The combined predicate.</returns>
+        public static Expression<Func<T, bool>> And<T>(this Expression<Func<T, bool>> first, Expression<Func<T, bool>> second)
         {
-            var invokedExpr = Expression.Invoke(expr2, expr1.Parameters);
-            return Expression.Lambda<Func<T, bool>>(Expression.AndAlso(expr1.Body, invokedExpr), expr1.Parameters);
+            var invokedExpression = Expression.Invoke(second, first.Parameters);
+            return Expression.Lambda<Func<T, bool>>(Expression.AndAlso(first.Body, invokedExpression), first.Parameters);
         }
 
         /// <summary>
         /// Negates a predicate.
         /// </summary>
-        /// <typeparam name="T">The type of the parameter in the predicate.</typeparam>
-        /// <param name="expr">The predicate to negate.</param>
-        /// <returns>A predicate that negates the input predicate.</returns>
-        public static Expression<Func<T, bool>> Not<T>(this Expression<Func<T, bool>> expr)
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <param name="expression">The predicate.</param>
+        /// <returns>The negated predicate.</returns>
+        public static Expression<Func<T, bool>> Not<T>(this Expression<Func<T, bool>> expression)
         {
-            return Expression.Lambda<Func<T, bool>>(Expression.Not(expr.Body), expr.Parameters);
+            var negated = Expression.Not(expression.Body);
+            return Expression.Lambda<Func<T, bool>>(negated, expression.Parameters);
         }
     }
 }

@@ -139,6 +139,23 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
         }
 
         /// <summary>
+        /// Gets or sets the specification evaluator.
+        /// </summary>
+        protected ISpecificationEvaluator SpecificationEvaluator { get; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReadOnlyRepository{T}"/> class.
+        /// </summary>
+        /// <param name="dbContext">The database context.</param>
+        /// <param name="specificationEvaluator">The specification evaluator.</param>
+        public ReadOnlyRepository(DbContext dbContext, ISpecificationEvaluator specificationEvaluator)
+        {
+            DbContext = dbContext;
+            DbSet = dbContext.Set<T>();
+            SpecificationEvaluator = specificationEvaluator;
+        }
+
+        /// <summary>
         /// Applies a specification to the query.
         /// </summary>
         /// <param name="specification">The specification.</param>
@@ -168,8 +185,9 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
         /// Initializes a new instance of the <see cref="ReadOnlyRepository{T, TKey}"/> class.
         /// </summary>
         /// <param name="dbContext">The database context.</param>
-        public ReadOnlyRepository(DbContext dbContext)
-            : base(dbContext)
+        /// <param name="specificationEvaluator">The specification evaluator.</param>
+        public ReadOnlyRepository(DbContext dbContext, ISpecificationEvaluator specificationEvaluator)
+            : base(dbContext, specificationEvaluator)
         {
         }
 

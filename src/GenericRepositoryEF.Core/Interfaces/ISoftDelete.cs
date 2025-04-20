@@ -1,7 +1,7 @@
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Interface for entities that support soft delete.
+    /// Interface for an entity that supports soft delete.
     /// </summary>
     public interface ISoftDelete
     {
@@ -11,7 +11,7 @@ namespace GenericRepositoryEF.Core.Interfaces
         bool IsDeleted { get; set; }
 
         /// <summary>
-        /// Gets or sets the date when the entity was deleted.
+        /// Gets or sets the date and time when the entity was deleted.
         /// </summary>
         DateTime? DeletedAt { get; set; }
     }

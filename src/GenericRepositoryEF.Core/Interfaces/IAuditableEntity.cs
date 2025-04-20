@@ -1,12 +1,12 @@
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Interface for auditable entities.
+    /// Interface for an entity that supports auditing.
     /// </summary>
     public interface IAuditableEntity
     {
         /// <summary>
-        /// Gets or sets the date when the entity was created.
+        /// Gets or sets the date and time when the entity was created.
         /// </summary>
         DateTime CreatedAt { get; set; }
 
@@ -16,7 +16,7 @@ namespace GenericRepositoryEF.Core.Interfaces
         string? CreatedBy { get; set; }
 
         /// <summary>
-        /// Gets or sets the date when the entity was last modified.
+        /// Gets or sets the date and time when the entity was last modified.
         /// </summary>
         DateTime? ModifiedAt { get; set; }
 

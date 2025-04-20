@@ -1,3 +1,5 @@
+using System.Data;
+
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
@@ -6,47 +8,48 @@ namespace GenericRepositoryEF.Core.Interfaces
     public interface IUnitOfWork : IDisposable, IAsyncDisposable
     {
         /// <summary>
-        /// Gets a repository.
+        /// Gets a repository for a given entity type.
         /// </summary>
         /// <typeparam name="T">The type of entity.</typeparam>
         /// <returns>The repository.</returns>
         IRepository<T> Repository<T>() where T : class, IEntity;
 
         /// <summary>
-        /// Gets a repository with a key.
+        /// Gets a repository for a given entity type with a key.
         /// </summary>
         /// <typeparam name="T">The type of entity.</typeparam>
         /// <typeparam name="TKey">The type of the key.</typeparam>
         /// <returns>The repository.</returns>
-        IRepository<T, TKey> Repository<T, TKey>() where T : class, IEntityWithKey<TKey>;
+        IRepository<T, TKey> Repository<T, TKey>() where T : class, IEntityWithKey<TKey>, IEntity;
 
         /// <summary>
-        /// Gets a read-only repository.
+        /// Gets a read-only repository for a given entity type.
         /// </summary>
         /// <typeparam name="T">The type of entity.</typeparam>
         /// <returns>The repository.</returns>
         IReadOnlyRepository<T> ReadOnlyRepository<T>() where T : class, IEntity;
 
         /// <summary>
-        /// Gets a read-only repository with a key.
+        /// Gets a read-only repository for a given entity type with a key.
         /// </summary>
         /// <typeparam name="T">The type of entity.</typeparam>
         /// <typeparam name="TKey">The type of the key.</typeparam>
         /// <returns>The repository.</returns>
-        IReadOnlyRepository<T, TKey> ReadOnlyRepository<T, TKey>() where T : class, IEntityWithKey<TKey>;
+        IReadOnlyRepository<T, TKey> ReadOnlyRepository<T, TKey>() where T : class, IEntityWithKey<TKey>, IEntity;
 
         /// <summary>
         /// Begins a transaction.
         /// </summary>
+        /// <param name="isolationLevel">The isolation level.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation. The task result is a transaction.</returns>
-        Task<ITransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+        /// <returns>The transaction.</returns>
+        Task<ITransaction> BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Saves the changes asynchronously.
+        /// Saves changes to the database.
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation. The task result is the number of state entries written to the database.</returns>
+        /// <returns>The number of entities written to the database.</returns>
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }
