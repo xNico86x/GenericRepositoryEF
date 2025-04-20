@@ -1,17 +1,17 @@
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Evaluates specifications to build IQueryable objects.
+    /// Interface for a specification evaluator.
     /// </summary>
     public interface ISpecificationEvaluator
     {
         /// <summary>
-        /// Gets a queryable that represents all entities in the repository, with the specification applied.
+        /// Creates a query using the specification.
         /// </summary>
         /// <typeparam name="T">The type of entity.</typeparam>
-        /// <param name="inputQuery">The input query.</param>
-        /// <param name="specification">The specification to apply.</param>
-        /// <returns>The queryable.</returns>
-        IQueryable<T> GetQuery<T>(IQueryable<T> inputQuery, ISpecification<T> specification) where T : class, IEntity;
+        /// <param name="query">The input query.</param>
+        /// <param name="specification">The specification.</param>
+        /// <returns>The query with the applied specification.</returns>
+        IQueryable<T> GetQuery<T>(IQueryable<T> query, ISpecification<T> specification) where T : class, IEntity;
     }
 }

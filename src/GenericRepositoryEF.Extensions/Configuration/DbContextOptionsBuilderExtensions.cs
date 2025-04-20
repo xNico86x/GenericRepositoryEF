@@ -1,8 +1,6 @@
 using GenericRepositoryEF.Core.Interfaces;
 using GenericRepositoryEF.Infrastructure.Interceptors;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.Logging;
 
 namespace GenericRepositoryEF.Extensions.Configuration
 {
@@ -12,64 +10,99 @@ namespace GenericRepositoryEF.Extensions.Configuration
     public static class DbContextOptionsBuilderExtensions
     {
         /// <summary>
-        /// Adds audit interceptors to the DbContext.
+        /// Adds the generic repository interceptors to the DbContext options builder.
         /// </summary>
         /// <param name="optionsBuilder">The options builder.</param>
-        /// <param name="currentUserServiceProvider">A function that provides the current user service.</param>
-        /// <returns>The options builder for chaining.</returns>
-        public static DbContextOptionsBuilder AddAuditInterceptors(
+        /// <param name="dateTimeService">The date time service.</param>
+        /// <param name="currentUserService">The current user service.</param>
+        /// <param name="addAuditInterceptor">Whether to add the audit interceptor.</param>
+        /// <param name="addSoftDeleteInterceptor">Whether to add the soft delete interceptor.</param>
+        /// <returns>The options builder.</returns>
+        public static DbContextOptionsBuilder UseGenericRepositoryInterceptors(
             this DbContextOptionsBuilder optionsBuilder,
-            Func<ICurrentUserService> currentUserServiceProvider)
+            IDateTime dateTimeService,
+            ICurrentUserService? currentUserService = null,
+            bool addAuditInterceptor = true,
+            bool addSoftDeleteInterceptor = true)
         {
-            optionsBuilder.AddInterceptors(new AuditSaveChangesInterceptor(currentUserServiceProvider()));
-                
+            if (addAuditInterceptor)
+            {
+                optionsBuilder.AddInterceptors(new AuditSaveChangesInterceptor(dateTimeService, currentUserService));
+            }
+
+            if (addSoftDeleteInterceptor)
+            {
+                optionsBuilder.AddInterceptors(new SoftDeleteSaveChangesInterceptor(dateTimeService, currentUserService));
+            }
+
             return optionsBuilder;
         }
-        
+
         /// <summary>
-        /// Adds soft delete interceptors to the DbContext.
+        /// Configures the DbContext options to use SQL Server.
         /// </summary>
         /// <param name="optionsBuilder">The options builder.</param>
-        /// <param name="currentUserServiceProvider">A function that provides the current user service.</param>
-        /// <returns>The options builder for chaining.</returns>
-        public static DbContextOptionsBuilder AddSoftDeleteInterceptors(
+        /// <param name="connectionString">The connection string.</param>
+        /// <returns>The options builder.</returns>
+        public static DbContextOptionsBuilder UseGenericRepositorySqlServer(
             this DbContextOptionsBuilder optionsBuilder,
-            Func<ICurrentUserService> currentUserServiceProvider)
+            string connectionString)
         {
-            optionsBuilder.AddInterceptors(new SoftDeleteSaveChangesInterceptor(currentUserServiceProvider()));
-                
-            return optionsBuilder;
+            return optionsBuilder.UseSqlServer(connectionString, sqlOptions =>
+            {
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null);
+            });
         }
-        
+
         /// <summary>
-        /// Configures logging for the DbContext.
+        /// Configures the DbContext options to use PostgreSQL.
         /// </summary>
         /// <param name="optionsBuilder">The options builder.</param>
-        /// <param name="logLevel">The minimum log level.</param>
-        /// <returns>The options builder for chaining.</returns>
-        public static DbContextOptionsBuilder ConfigureLogging(
+        /// <param name="connectionString">The connection string.</param>
+        /// <returns>The options builder.</returns>
+        public static DbContextOptionsBuilder UseGenericRepositoryNpgsql(
             this DbContextOptionsBuilder optionsBuilder,
-            LogLevel logLevel = LogLevel.Information)
+            string connectionString)
         {
-            optionsBuilder.EnableSensitiveDataLogging(); // For development
-            optionsBuilder.EnableDetailedErrors();
-            optionsBuilder.LogTo(Console.WriteLine, logLevel);
-            
-            return optionsBuilder;
+            return optionsBuilder.UseNpgsql(connectionString, npgsqlOptions =>
+            {
+                npgsqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorCodesToAdd: null);
+            });
         }
-        
+
         /// <summary>
-        /// Configures query splitting behavior for the DbContext.
+        /// Configures the DbContext options to use SQLite.
         /// </summary>
         /// <param name="optionsBuilder">The options builder.</param>
-        /// <param name="splitQueries">Whether to split queries.</param>
-        /// <returns>The options builder for chaining.</returns>
-        public static DbContextOptionsBuilder ConfigureQuerySplitting(
+        /// <param name="connectionString">The connection string.</param>
+        /// <returns>The options builder.</returns>
+        public static DbContextOptionsBuilder UseGenericRepositorySqlite(
             this DbContextOptionsBuilder optionsBuilder,
-            bool splitQueries = true)
+            string connectionString)
         {
-            // This will be handled by specific provider options builder
-            return optionsBuilder;
+            return optionsBuilder.UseSqlite(connectionString, sqliteOptions =>
+            {
+                sqliteOptions.CommandTimeout(60);
+            });
+        }
+
+        /// <summary>
+        /// Configures the DbContext options to use in-memory database.
+        /// </summary>
+        /// <param name="optionsBuilder">The options builder.</param>
+        /// <param name="databaseName">The database name.</param>
+        /// <returns>The options builder.</returns>
+        public static DbContextOptionsBuilder UseGenericRepositoryInMemory(
+            this DbContextOptionsBuilder optionsBuilder,
+            string databaseName)
+        {
+            return optionsBuilder.UseInMemoryDatabase(databaseName);
         }
     }
 }

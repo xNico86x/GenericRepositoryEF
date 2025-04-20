@@ -3,56 +3,53 @@ namespace GenericRepositoryEF.Core.Exceptions
     /// <summary>
     /// Exception thrown when a repository operation fails.
     /// </summary>
-    [Serializable]
     public class RepositoryException : Exception
     {
         /// <summary>
-        /// Gets the entity type.
+        /// Gets or sets the entity type.
         /// </summary>
-        public Type? EntityType { get; }
+        public Type? EntityType { get; set; }
 
         /// <summary>
-        /// Gets the operation name.
+        /// Gets or sets the method name.
         /// </summary>
-        public string? Operation { get; }
+        public string? MethodName { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RepositoryException"/> class.
         /// </summary>
-        public RepositoryException()
+        public RepositoryException() : base("A repository error occurred.")
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RepositoryException"/> class with a specified error message.
+        /// Initializes a new instance of the <see cref="RepositoryException"/> class.
         /// </summary>
-        /// <param name="message">The message that describes the error.</param>
-        public RepositoryException(string message)
-            : base(message)
+        /// <param name="message">The error message.</param>
+        public RepositoryException(string message) : base(message)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RepositoryException"/> class with a specified error message and a reference to the inner exception that is the cause of this exception.
+        /// Initializes a new instance of the <see cref="RepositoryException"/> class.
         /// </summary>
-        /// <param name="message">The error message that explains the reason for the exception.</param>
-        /// <param name="innerException">The exception that is the cause of the current exception, or a null reference if no inner exception is specified.</param>
-        public RepositoryException(string message, Exception innerException)
-            : base(message, innerException)
+        /// <param name="message">The error message.</param>
+        /// <param name="innerException">The inner exception.</param>
+        public RepositoryException(string message, Exception innerException) : base(message, innerException)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RepositoryException"/> class with a specified entity type, operation name, and a reference to the inner exception that is the cause of this exception.
+        /// Initializes a new instance of the <see cref="RepositoryException"/> class.
         /// </summary>
         /// <param name="entityType">The entity type.</param>
-        /// <param name="operation">The operation name.</param>
-        /// <param name="innerException">The exception that is the cause of the current exception, or a null reference if no inner exception is specified.</param>
-        public RepositoryException(Type entityType, string operation, Exception innerException)
-            : base($"Repository operation '{operation}' failed for entity '{entityType.Name}'. See inner exception for details.", innerException)
+        /// <param name="methodName">The method name.</param>
+        /// <param name="innerException">The inner exception.</param>
+        public RepositoryException(Type entityType, string methodName, Exception? innerException = null) 
+            : base($"Repository operation {methodName} failed for entity type {entityType.Name}.", innerException)
         {
             EntityType = entityType;
-            Operation = operation;
+            MethodName = methodName;
         }
     }
 }

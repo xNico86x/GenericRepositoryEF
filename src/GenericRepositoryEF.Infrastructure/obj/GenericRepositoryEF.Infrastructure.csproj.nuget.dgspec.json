@@ -43,13 +43,9 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
-            "Microsoft.Extensions.DependencyInjection.Abstractions": {
+            "Microsoft.EntityFrameworkCore": {
               "target": "Package",
-              "version": "[9.0.4, )"
-            },
-            "Microsoft.Extensions.Logging.Abstractions": {
-              "target": "Package",
-              "version": "[9.0.4, )"
+              "version": "[8.0.0, )"
             }
           },
           "imports": [
@@ -117,15 +113,11 @@
           "dependencies": {
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
-              "version": "[9.0.4, )"
+              "version": "[8.0.0, )"
             },
-            "Microsoft.Extensions.Logging": {
+            "Microsoft.Extensions.Caching.Abstractions": {
               "target": "Package",
-              "version": "[9.0.4, )"
-            },
-            "Polly": {
-              "target": "Package",
-              "version": "[8.5.2, )"
+              "version": "[8.0.0, )"
             }
           },
           "imports": [

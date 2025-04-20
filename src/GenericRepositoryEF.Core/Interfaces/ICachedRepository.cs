@@ -7,7 +7,7 @@ namespace GenericRepositoryEF.Core.Interfaces
     public interface ICachedRepository<T> : IRepository<T> where T : class, IEntity
     {
         /// <summary>
-        /// Invalidates the cache for the entity type.
+        /// Invalidates the cache.
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
@@ -19,15 +19,16 @@ namespace GenericRepositoryEF.Core.Interfaces
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
     /// <typeparam name="TKey">The type of the key.</typeparam>
-    public interface ICachedRepository<T, TKey> : IRepository<T, TKey>, ICachedRepository<T> 
+    public interface ICachedRepository<T, TKey> : ICachedRepository<T>, IRepository<T, TKey>
         where T : class, IEntityWithKey<TKey>, IEntity
+        where TKey : IEquatable<TKey>
     {
         /// <summary>
-        /// Invalidates the cache for the entity with the specified identifier.
+        /// Invalidates the cache for an entity.
         /// </summary>
         /// <param name="id">The identifier.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task InvalidateCacheForIdAsync(TKey id, CancellationToken cancellationToken = default);
+        Task InvalidateCacheForEntityAsync(TKey id, CancellationToken cancellationToken = default);
     }
 }

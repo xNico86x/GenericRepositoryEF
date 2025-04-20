@@ -3,7 +3,35 @@ using System.Linq.Expressions;
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Interface for a specification.
+    /// Non-generic specification evaluator interface.
+    /// </summary>
+    public interface ISpecificationEvaluator
+    {
+        /// <summary>
+        /// Gets a typed specification evaluator.
+        /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <returns>The specification evaluator.</returns>
+        ISpecificationEvaluator<T> For<T>() where T : class, IEntity;
+    }
+
+    /// <summary>
+    /// Specification evaluator interface.
+    /// </summary>
+    /// <typeparam name="T">The type of entity.</typeparam>
+    public interface ISpecificationEvaluator<T> where T : class, IEntity
+    {
+        /// <summary>
+        /// Gets a query with a specification applied.
+        /// </summary>
+        /// <param name="inputQuery">The input query.</param>
+        /// <param name="specification">The specification.</param>
+        /// <returns>The query with the specification applied.</returns>
+        IQueryable<T> GetQuery(IQueryable<T> inputQuery, ISpecification<T> specification);
+    }
+
+    /// <summary>
+    /// Interface for a specification that can be applied to a query.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
     public interface ISpecification<T> where T : class, IEntity
@@ -16,12 +44,12 @@ namespace GenericRepositoryEF.Core.Interfaces
         /// <summary>
         /// Gets the include expressions.
         /// </summary>
-        IReadOnlyList<Expression<Func<T, object>>> Includes { get; }
+        List<Expression<Func<T, object>>> Includes { get; }
 
         /// <summary>
         /// Gets the include strings.
         /// </summary>
-        IReadOnlyList<string> IncludeStrings { get; }
+        List<string> IncludeStrings { get; }
 
         /// <summary>
         /// Gets the order by expression.
@@ -39,23 +67,23 @@ namespace GenericRepositoryEF.Core.Interfaces
         Expression<Func<T, object>>? GroupBy { get; }
 
         /// <summary>
-        /// Gets a value indicating whether tracking is enabled.
+        /// Gets a value indicating whether the entity should be tracked.
         /// </summary>
         bool IsTrackingEnabled { get; }
 
         /// <summary>
-        /// Gets the skip value.
+        /// Gets a value indicating whether the query is paging enabled.
+        /// </summary>
+        bool IsPagingEnabled { get; }
+
+        /// <summary>
+        /// Gets the number of items to skip.
         /// </summary>
         int? Skip { get; }
 
         /// <summary>
-        /// Gets the take value.
+        /// Gets the number of items to take.
         /// </summary>
         int? Take { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether paging is enabled.
-        /// </summary>
-        bool IsPagingEnabled { get; }
     }
 }

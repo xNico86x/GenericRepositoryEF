@@ -34,7 +34,7 @@ namespace GenericRepositoryEF.Infrastructure.Transactions
             }
             catch (Exception ex)
             {
-                throw new TransactionException("Failed to commit transaction", ex);
+                throw new TransactionException("Failed to commit transaction.", ex);
             }
         }
 
@@ -51,7 +51,7 @@ namespace GenericRepositoryEF.Infrastructure.Transactions
             }
             catch (Exception ex)
             {
-                throw new TransactionException("Failed to rollback transaction", ex);
+                throw new TransactionException("Failed to rollback transaction.", ex);
             }
         }
 
