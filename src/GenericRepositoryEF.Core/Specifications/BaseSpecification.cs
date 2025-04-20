@@ -14,8 +14,7 @@ namespace GenericRepositoryEF.Core.Specifications
         /// </summary>
         protected BaseSpecification()
         {
-            Includes = new List<Expression<Func<T, object>>>();
-            IncludeStrings = new List<string>();
+            Criteria = null;
         }
 
         /// <summary>
@@ -23,7 +22,6 @@ namespace GenericRepositoryEF.Core.Specifications
         /// </summary>
         /// <param name="criteria">The criteria.</param>
         protected BaseSpecification(Expression<Func<T, bool>> criteria)
-            : this()
         {
             Criteria = criteria;
         }
@@ -34,121 +32,141 @@ namespace GenericRepositoryEF.Core.Specifications
         public Expression<Func<T, bool>>? Criteria { get; private set; }
 
         /// <summary>
-        /// Gets the include expressions.
+        /// Gets the includes.
         /// </summary>
-        public IReadOnlyList<Expression<Func<T, object>>> Includes { get; }
+        public List<Expression<Func<T, object>>> Includes { get; } = new();
 
         /// <summary>
         /// Gets the include strings.
         /// </summary>
-        public IReadOnlyList<string> IncludeStrings { get; }
+        public List<string> IncludeStrings { get; } = new();
 
         /// <summary>
-        /// Gets the order by expression.
+        /// Gets the order by.
         /// </summary>
         public Expression<Func<T, object>>? OrderBy { get; private set; }
 
         /// <summary>
-        /// Gets the order by descending expression.
+        /// Gets the order by descending.
         /// </summary>
         public Expression<Func<T, object>>? OrderByDescending { get; private set; }
 
         /// <summary>
-        /// Gets the group by expression.
+        /// Gets the group by.
         /// </summary>
         public Expression<Func<T, object>>? GroupBy { get; private set; }
 
         /// <summary>
-        /// Gets a value indicating whether tracking is enabled.
+        /// Gets a value indicating whether to track the entity.
         /// </summary>
         public bool IsTrackingEnabled { get; private set; } = true;
 
         /// <summary>
-        /// Gets the skip value.
+        /// Gets a value indicating whether to enable pagination.
+        /// </summary>
+        public bool IsPagingEnabled { get; private set; }
+
+        /// <summary>
+        /// Gets the skip.
         /// </summary>
         public int? Skip { get; private set; }
 
         /// <summary>
-        /// Gets the take value.
+        /// Gets the take.
         /// </summary>
         public int? Take { get; private set; }
 
         /// <summary>
-        /// Gets a value indicating whether paging is enabled.
-        /// </summary>
-        public bool IsPagingEnabled => Skip.HasValue && Take.HasValue;
-
-        /// <summary>
-        /// Adds a criteria to the specification.
-        /// </summary>
-        /// <param name="criteria">The criteria.</param>
-        protected virtual void AddCriteria(Expression<Func<T, bool>> criteria)
-        {
-            Criteria = criteria;
-        }
-
-        /// <summary>
-        /// Adds an include expression to the specification.
+        /// Applies an include expression.
         /// </summary>
         /// <param name="includeExpression">The include expression.</param>
+        /// <returns>The specification.</returns>
         protected virtual void AddInclude(Expression<Func<T, object>> includeExpression)
         {
-            ((List<Expression<Func<T, object>>>)Includes).Add(includeExpression);
+            Includes.Add(includeExpression);
         }
 
         /// <summary>
-        /// Adds an include string to the specification.
+        /// Applies an include string.
         /// </summary>
         /// <param name="includeString">The include string.</param>
+        /// <returns>The specification.</returns>
         protected virtual void AddInclude(string includeString)
         {
-            ((List<string>)IncludeStrings).Add(includeString);
+            IncludeStrings.Add(includeString);
         }
 
         /// <summary>
-        /// Applies paging to the specification.
+        /// Applies pagination.
         /// </summary>
-        /// <param name="skip">The number of entities to skip.</param>
-        /// <param name="take">The number of entities to take.</param>
+        /// <param name="skip">The skip.</param>
+        /// <param name="take">The take.</param>
+        /// <returns>The specification.</returns>
         protected virtual void ApplyPaging(int skip, int take)
         {
             Skip = skip;
             Take = take;
+            IsPagingEnabled = true;
         }
 
         /// <summary>
-        /// Applies an order by to the specification.
+        /// Applies pagination with a page number and size.
+        /// </summary>
+        /// <param name="pageNumber">The page number.</param>
+        /// <param name="pageSize">The page size.</param>
+        /// <returns>The specification.</returns>
+        protected virtual void ApplyPagingWithPageNumber(int pageNumber, int pageSize)
+        {
+            var skip = (pageNumber - 1) * pageSize;
+            ApplyPaging(skip, pageSize);
+        }
+
+        /// <summary>
+        /// Applies an "order by" expression.
         /// </summary>
         /// <param name="orderByExpression">The order by expression.</param>
+        /// <returns>The specification.</returns>
         protected virtual void ApplyOrderBy(Expression<Func<T, object>> orderByExpression)
         {
             OrderBy = orderByExpression;
         }
 
         /// <summary>
-        /// Applies an order by descending to the specification.
+        /// Applies an "order by descending" expression.
         /// </summary>
         /// <param name="orderByDescendingExpression">The order by descending expression.</param>
+        /// <returns>The specification.</returns>
         protected virtual void ApplyOrderByDescending(Expression<Func<T, object>> orderByDescendingExpression)
         {
             OrderByDescending = orderByDescendingExpression;
         }
 
         /// <summary>
-        /// Applies a group by to the specification.
+        /// Applies a "group by" expression.
         /// </summary>
         /// <param name="groupByExpression">The group by expression.</param>
+        /// <returns>The specification.</returns>
         protected virtual void ApplyGroupBy(Expression<Func<T, object>> groupByExpression)
         {
             GroupBy = groupByExpression;
         }
 
         /// <summary>
-        /// Disables tracking.
+        /// Disables tracking of entities.
         /// </summary>
+        /// <returns>The specification.</returns>
         protected virtual void DisableTracking()
         {
             IsTrackingEnabled = false;
+        }
+
+        /// <summary>
+        /// Enables tracking of entities.
+        /// </summary>
+        /// <returns>The specification.</returns>
+        protected virtual void EnableTracking()
+        {
+            IsTrackingEnabled = true;
         }
     }
 }

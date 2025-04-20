@@ -1,102 +1,98 @@
 using GenericRepositoryEF.Core.Interfaces;
 using GenericRepositoryEF.Core.Specifications;
-using GenericRepositoryEF.Infrastructure.Factories;
 using GenericRepositoryEF.Infrastructure.Interceptors;
-using GenericRepositoryEF.Infrastructure.Repositories;
-using GenericRepositoryEF.Infrastructure.Specifications;
-using GenericRepositoryEF.Infrastructure.UnitOfWorks;
+using GenericRepositoryEF.Infrastructure.Services;
+using GenericRepositoryEF.Infrastructure.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GenericRepositoryEF.Extensions.DependencyInjection
 {
     /// <summary>
-    /// Extension methods for adding GenericRepositoryEF to the service collection.
+    /// Extension methods for <see cref="IServiceCollection"/>.
     /// </summary>
     public static class ServiceCollectionExtensions
     {
         /// <summary>
-        /// Adds GenericRepositoryEF services to the service collection.
+        /// Adds the generic repository to the service collection.
         /// </summary>
-        /// <param name="services">The service collection.</param>
-        /// <param name="dbContextOptionsAction">The action to configure the DbContext options.</param>
-        /// <param name="currentUserServiceFactory">The factory to create the current user service.</param>
+        /// <typeparam name="TContext">The type of the context.</typeparam>
+        /// <param name="services">The services.</param>
+        /// <param name="configureOptions">The configure options.</param>
         /// <returns>The service collection.</returns>
         public static IServiceCollection AddGenericRepository<TContext>(
-            this IServiceCollection services, 
-            Action<DbContextOptionsBuilder> dbContextOptionsAction,
-            Func<IServiceProvider, ICurrentUserService?> currentUserServiceFactory) 
+            this IServiceCollection services,
+            Action<ServiceConfigurationOptions>? configureOptions = null)
             where TContext : DbContext
         {
-            // Register DbContext
-            services.AddDbContext<TContext>(dbContextOptionsAction);
-            services.AddScoped<DbContext>(provider => provider.GetRequiredService<TContext>());
+            return AddGenericRepository<TContext>(services, configureOptions, null);
+        }
 
-            // Register specification evaluator
-            services.AddScoped<ISpecificationEvaluator, SpecificationEvaluator>();
+        /// <summary>
+        /// Adds the generic repository to the service collection.
+        /// </summary>
+        /// <typeparam name="TContext">The type of the context.</typeparam>
+        /// <param name="services">The services.</param>
+        /// <param name="configureOptions">The configure options.</param>
+        /// <param name="configureDbContext">The configure database context.</param>
+        /// <returns>The service collection.</returns>
+        public static IServiceCollection AddGenericRepository<TContext>(
+            this IServiceCollection services,
+            Action<ServiceConfigurationOptions>? configureOptions = null,
+            Action<DbContextOptionsBuilder>? configureDbContext = null)
+            where TContext : DbContext
+        {
+            var options = new ServiceConfigurationOptions();
+            configureOptions?.Invoke(options);
 
-            // Register interceptors
-            services.AddScoped<AuditSaveChangesInterceptor>(sp => 
-                new AuditSaveChangesInterceptor(currentUserServiceFactory(sp)));
-            
-            services.AddScoped<SoftDeleteSaveChangesInterceptor>();
+            // Add specification evaluator
+            services.AddSingleton<ISpecificationEvaluator, SpecificationEvaluator>();
+            services.AddSingleton(typeof(ISpecificationEvaluator<>), typeof(SpecificationEvaluator<>));
 
-            // Register factories and unit of work
-            services.AddScoped<IRepositoryFactory, RepositoryFactory>();
-            services.AddScoped<IUnitOfWorkFactory, UnitOfWorkFactory>();
-            services.AddScoped<IUnitOfWork>(sp => {
-                var unitOfWorkFactory = sp.GetRequiredService<IUnitOfWorkFactory>();
-                return unitOfWorkFactory.CreateUnitOfWork();
+            // Add date time service
+            if (options.AddDateTimeService)
+            {
+                services.AddSingleton<IDateTime, DateTimeService>();
+            }
+
+            // Add DbContext if not already configured
+            if (configureDbContext != null)
+            {
+                services.AddDbContext<TContext>(configureDbContext);
+            }
+
+            // Add unit of work
+            services.AddScoped<IUnitOfWork>(provider =>
+            {
+                var context = provider.GetRequiredService<TContext>();
+                var specificationEvaluator = provider.GetRequiredService<ISpecificationEvaluator>();
+                return new UnitOfWork(context, specificationEvaluator);
             });
 
-            // Register repositories for direct injection
-            services.AddScoped(typeof(IReadOnlyRepository<>), (sp) => {
-                var repositoryFactory = sp.GetRequiredService<IRepositoryFactory>();
-                var entityType = typeof(IReadOnlyRepository<>).GenericTypeArguments[0];
-                var method = repositoryFactory.GetType().GetMethod(nameof(IRepositoryFactory.CreateReadOnlyRepository));
-                var genericMethod = method.MakeGenericMethod(entityType);
-                return genericMethod.Invoke(repositoryFactory, null);
-            });
+            // Add interceptors
+            if (options.AddAuditInterceptor || options.AddSoftDeleteInterceptor)
+            {
+                services.AddScoped(provider =>
+                {
+                    var dateTimeService = provider.GetRequiredService<IDateTime>();
+                    var currentUserService = provider.GetService<ICurrentUserService>();
 
-            services.AddScoped(typeof(IRepository<>), (sp) => {
-                var repositoryFactory = sp.GetRequiredService<IRepositoryFactory>();
-                var entityType = typeof(IRepository<>).GenericTypeArguments[0];
-                var method = repositoryFactory.GetType().GetMethod(nameof(IRepositoryFactory.CreateRepository));
-                var genericMethod = method.MakeGenericMethod(entityType);
-                return genericMethod.Invoke(repositoryFactory, null);
-            });
+                    return (Action<DbContextOptionsBuilder>)(optionsBuilder =>
+                    {
+                        if (options.AddAuditInterceptor)
+                        {
+                            optionsBuilder.AddInterceptors(new AuditSaveChangesInterceptor(dateTimeService, currentUserService));
+                        }
+
+                        if (options.AddSoftDeleteInterceptor)
+                        {
+                            optionsBuilder.AddInterceptors(new SoftDeleteSaveChangesInterceptor(dateTimeService, currentUserService));
+                        }
+                    });
+                });
+            }
 
             return services;
-        }
-
-        /// <summary>
-        /// Adds GenericRepositoryEF services to the service collection without a current user service.
-        /// </summary>
-        /// <param name="services">The service collection.</param>
-        /// <param name="dbContextOptionsAction">The action to configure the DbContext options.</param>
-        /// <returns>The service collection.</returns>
-        public static IServiceCollection AddGenericRepository<TContext>(
-            this IServiceCollection services, 
-            Action<DbContextOptionsBuilder> dbContextOptionsAction) 
-            where TContext : DbContext
-        {
-            return services.AddGenericRepository<TContext>(dbContextOptionsAction, _ => null);
-        }
-
-        /// <summary>
-        /// Adds GenericRepositoryEF services to the service collection with a specific current user service.
-        /// </summary>
-        /// <param name="services">The service collection.</param>
-        /// <param name="dbContextOptionsAction">The action to configure the DbContext options.</param>
-        /// <param name="currentUserService">The current user service.</param>
-        /// <returns>The service collection.</returns>
-        public static IServiceCollection AddGenericRepository<TContext>(
-            this IServiceCollection services, 
-            Action<DbContextOptionsBuilder> dbContextOptionsAction,
-            ICurrentUserService currentUserService) 
-            where TContext : DbContext
-        {
-            return services.AddGenericRepository<TContext>(dbContextOptionsAction, _ => currentUserService);
         }
     }
 }

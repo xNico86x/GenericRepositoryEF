@@ -1,55 +1,73 @@
 using GenericRepositoryEF.Core.Interfaces;
+using GenericRepositoryEF.Core.Specifications;
 using GenericRepositoryEF.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GenericRepositoryEF.Infrastructure.Factories
 {
     /// <summary>
     /// Factory for creating repositories.
     /// </summary>
-    public class RepositoryFactory : IRepositoryFactory
+    public class RepositoryFactory
     {
-        private readonly IServiceProvider _serviceProvider;
-        private readonly DbContext _dbContext;
+        private readonly DbContext _context;
+        private readonly ISpecificationEvaluator _specificationEvaluator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RepositoryFactory"/> class.
         /// </summary>
-        /// <param name="serviceProvider">The service provider.</param>
-        /// <param name="dbContext">The database context.</param>
-        public RepositoryFactory(IServiceProvider serviceProvider, DbContext dbContext)
+        /// <param name="context">The database context.</param>
+        /// <param name="specificationEvaluator">The specification evaluator.</param>
+        public RepositoryFactory(DbContext context, ISpecificationEvaluator specificationEvaluator)
         {
-            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            _context = context;
+            _specificationEvaluator = specificationEvaluator;
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Creates a repository for an entity.
+        /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <returns>The repository.</returns>
         public IRepository<T> CreateRepository<T>() where T : class, IEntity
         {
-            var specificationEvaluator = _serviceProvider.GetRequiredService<ISpecificationEvaluator>();
-            return new Repository<T>(_dbContext, specificationEvaluator);
+            return new Repository<T>(_context, (ISpecificationEvaluator<T>)_specificationEvaluator);
         }
 
-        /// <inheritdoc/>
-        public IRepository<T, TKey> CreateRepository<T, TKey>() where T : class, IEntity<TKey> where TKey : IEquatable<TKey>
+        /// <summary>
+        /// Creates a repository for an entity with a key.
+        /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <typeparam name="TKey">The type of the key.</typeparam>
+        /// <returns>The repository.</returns>
+        public IRepository<T, TKey> CreateRepository<T, TKey>() 
+            where T : class, IEntityWithKey<TKey>, IEntity
+            where TKey : IEquatable<TKey>
         {
-            var specificationEvaluator = _serviceProvider.GetRequiredService<ISpecificationEvaluator>();
-            return new Repository<T, TKey>(_dbContext, specificationEvaluator);
+            return new Repository<T, TKey>(_context, (ISpecificationEvaluator<T>)_specificationEvaluator);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Creates a read-only repository for an entity.
+        /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <returns>The repository.</returns>
         public IReadOnlyRepository<T> CreateReadOnlyRepository<T>() where T : class, IEntity
         {
-            var specificationEvaluator = _serviceProvider.GetRequiredService<ISpecificationEvaluator>();
-            return new ReadOnlyRepository<T>(_dbContext, specificationEvaluator);
+            return new ReadOnlyRepository<T>(_context, (ISpecificationEvaluator<T>)_specificationEvaluator);
         }
 
-        /// <inheritdoc/>
-        public IReadOnlyRepository<T, TKey> CreateReadOnlyRepository<T, TKey>() where T : class, IEntity<TKey> where TKey : IEquatable<TKey>
+        /// <summary>
+        /// Creates a read-only repository for an entity with a key.
+        /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <typeparam name="TKey">The type of the key.</typeparam>
+        /// <returns>The repository.</returns>
+        public IReadOnlyRepository<T, TKey> CreateReadOnlyRepository<T, TKey>() 
+            where T : class, IEntityWithKey<TKey>, IEntity
+            where TKey : IEquatable<TKey>
         {
-            var specificationEvaluator = _serviceProvider.GetRequiredService<ISpecificationEvaluator>();
-            return new ReadOnlyRepository<T, TKey>(_dbContext, specificationEvaluator);
+            return new ReadOnlyRepository<T, TKey>(_context, (ISpecificationEvaluator<T>)_specificationEvaluator);
         }
     }
 }

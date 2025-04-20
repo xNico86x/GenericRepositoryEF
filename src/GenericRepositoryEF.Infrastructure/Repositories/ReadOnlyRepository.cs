@@ -1,6 +1,6 @@
 using GenericRepositoryEF.Core.Exceptions;
 using GenericRepositoryEF.Core.Interfaces;
-using GenericRepositoryEF.Infrastructure.Specifications;
+using GenericRepositoryEF.Core.Specifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace GenericRepositoryEF.Infrastructure.Repositories
@@ -12,164 +12,106 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
     public class ReadOnlyRepository<T> : IReadOnlyRepository<T> where T : class, IEntity
     {
         /// <summary>
-        /// Gets the database context.
+        /// The context.
         /// </summary>
-        protected readonly DbContext DbContext;
+        protected readonly DbContext Context;
 
         /// <summary>
-        /// Gets the database set.
+        /// The evaluator.
         /// </summary>
-        protected readonly DbSet<T> DbSet;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ReadOnlyRepository{T}"/> class.
-        /// </summary>
-        /// <param name="dbContext">The database context.</param>
-        public ReadOnlyRepository(DbContext dbContext)
-        {
-            DbContext = dbContext;
-            DbSet = dbContext.Set<T>();
-        }
-
-        /// <summary>
-        /// Gets all entities asynchronously.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A collection of entities.</returns>
-        public virtual async Task<IReadOnlyList<T>> ListAllAsync(CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                return await DbSet.ToListAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                throw new RepositoryException(typeof(T), "ListAllAsync", ex);
-            }
-        }
-
-        /// <summary>
-        /// Gets entities using a specification asynchronously.
-        /// </summary>
-        /// <param name="specification">The specification.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A collection of entities.</returns>
-        public virtual async Task<IReadOnlyList<T>> ListAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                return await ApplySpecification(specification).ToListAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                throw new RepositoryException(typeof(T), "ListAsync", ex);
-            }
-        }
-
-        /// <summary>
-        /// Counts entities using a specification asynchronously.
-        /// </summary>
-        /// <param name="specification">The specification.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The count of entities.</returns>
-        public async Task<int> CountAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                return await ApplySpecification(specification).CountAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                throw new RepositoryException(typeof(T), "CountAsync", ex);
-            }
-        }
-
-        /// <summary>
-        /// Determines whether any entity exists using a specification asynchronously.
-        /// </summary>
-        /// <param name="specification">The specification.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>True if any entity exists, false otherwise.</returns>
-        public async Task<bool> AnyAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                return await ApplySpecification(specification).AnyAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                throw new RepositoryException(typeof(T), "AnyAsync", ex);
-            }
-        }
-
-        /// <summary>
-        /// Gets the first entity using a specification asynchronously.
-        /// </summary>
-        /// <param name="specification">The specification.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The first entity, or null if no entity exists.</returns>
-        public async Task<T?> FirstOrDefaultAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                return await ApplySpecification(specification).FirstOrDefaultAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                throw new RepositoryException(typeof(T), "FirstOrDefaultAsync", ex);
-            }
-        }
-
-        /// <summary>
-        /// Gets a single entity using a specification asynchronously.
-        /// </summary>
-        /// <param name="specification">The specification.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A single entity, or null if no entity exists.</returns>
-        public async Task<T?> SingleOrDefaultAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                return await ApplySpecification(specification).SingleOrDefaultAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                throw new RepositoryException(typeof(T), "SingleOrDefaultAsync", ex);
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the specification evaluator.
-        /// </summary>
-        protected ISpecificationEvaluator SpecificationEvaluator { get; }
+        protected readonly ISpecificationEvaluator<T> Evaluator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReadOnlyRepository{T}"/> class.
         /// </summary>
-        /// <param name="dbContext">The database context.</param>
-        /// <param name="specificationEvaluator">The specification evaluator.</param>
-        public ReadOnlyRepository(DbContext dbContext, ISpecificationEvaluator specificationEvaluator)
+        /// <param name="context">The context.</param>
+        /// <param name="evaluator">The evaluator.</param>
+        public ReadOnlyRepository(DbContext context, ISpecificationEvaluator<T> evaluator)
         {
-            DbContext = dbContext;
-            DbSet = dbContext.Set<T>();
-            SpecificationEvaluator = specificationEvaluator;
+            Context = context;
+            Evaluator = evaluator;
         }
 
         /// <summary>
-        /// Applies a specification to the query.
+        /// Gets the query.
         /// </summary>
         /// <param name="specification">The specification.</param>
         /// <returns>The query.</returns>
-        protected IQueryable<T> ApplySpecification(ISpecification<T> specification)
+        protected virtual IQueryable<T> ApplySpecification(ISpecification<T> specification)
         {
-            var query = SpecificationEvaluator.GetQuery(DbSet.AsQueryable(), specification);
+            return Evaluator.GetQuery(Context.Set<T>().AsQueryable(), specification);
+        }
 
-            if (!specification.IsTrackingEnabled)
+        /// <summary>
+        /// Gets all entities.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>All entities.</returns>
+        public virtual async Task<IReadOnlyList<T>> ListAllAsync(CancellationToken cancellationToken = default)
+        {
+            return await Context.Set<T>().ToListAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets entities using a specification.
+        /// </summary>
+        /// <param name="specification">The specification.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The entities that match the specification.</returns>
+        public virtual async Task<IReadOnlyList<T>> ListAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
+        {
+            return await ApplySpecification(specification).ToListAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets the first entity that matches the specification.
+        /// </summary>
+        /// <param name="specification">The specification.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The first entity that matches the specification.</returns>
+        public virtual async Task<T?> FirstOrDefaultAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
+        {
+            return await ApplySpecification(specification).FirstOrDefaultAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets the first entity that matches the specification or throws an exception.
+        /// </summary>
+        /// <param name="specification">The specification.</param>
+        /// <param name="throwIfNotFound">If true, throws an exception if no entity matches the specification.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The first entity that matches the specification.</returns>
+        /// <exception cref="EntityNotFoundException">If no entity matches the specification and throwIfNotFound is true.</exception>
+        public virtual async Task<T> FirstOrDefaultAsync(ISpecification<T> specification, bool throwIfNotFound, CancellationToken cancellationToken = default)
+        {
+            var entity = await FirstOrDefaultAsync(specification, cancellationToken);
+            if (entity == null && throwIfNotFound)
             {
-                query = query.AsNoTracking();
+                throw new EntityNotFoundException(typeof(T));
             }
+            return entity!;
+        }
 
-            return query;
+        /// <summary>
+        /// Counts entities using a specification.
+        /// </summary>
+        /// <param name="specification">The specification.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The count of entities that match the specification.</returns>
+        public virtual async Task<int> CountAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
+        {
+            return await ApplySpecification(specification).CountAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Checks if any entity matches the specification.
+        /// </summary>
+        /// <param name="specification">The specification.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>True if any entity matches the specification.</returns>
+        public virtual async Task<bool> AnyAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
+        {
+            return await ApplySpecification(specification).AnyAsync(cancellationToken);
         }
     }
 
@@ -179,34 +121,45 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
     /// <typeparam name="T">The type of entity.</typeparam>
     /// <typeparam name="TKey">The type of the key.</typeparam>
     public class ReadOnlyRepository<T, TKey> : ReadOnlyRepository<T>, IReadOnlyRepository<T, TKey>
-        where T : class, IEntityWithKey<TKey>
+        where T : class, IEntityWithKey<TKey>, IEntity
+        where TKey : IEquatable<TKey>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ReadOnlyRepository{T, TKey}"/> class.
         /// </summary>
-        /// <param name="dbContext">The database context.</param>
-        /// <param name="specificationEvaluator">The specification evaluator.</param>
-        public ReadOnlyRepository(DbContext dbContext, ISpecificationEvaluator specificationEvaluator)
-            : base(dbContext, specificationEvaluator)
+        /// <param name="context">The context.</param>
+        /// <param name="evaluator">The evaluator.</param>
+        public ReadOnlyRepository(DbContext context, ISpecificationEvaluator<T> evaluator)
+            : base(context, evaluator)
         {
         }
 
         /// <summary>
-        /// Gets an entity by its identifier asynchronously.
+        /// Gets an entity by identifier.
         /// </summary>
         /// <param name="id">The identifier.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The entity, or null if the entity does not exist.</returns>
+        /// <returns>The entity.</returns>
         public virtual async Task<T?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
         {
-            try
+            return await Context.Set<T>().FindAsync(new object[] { id }, cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets an entity by identifier or throws an exception.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The entity.</returns>
+        /// <exception cref="EntityNotFoundException">If the entity is not found.</exception>
+        public virtual async Task<T> GetByIdOrThrowAsync(TKey id, CancellationToken cancellationToken = default)
+        {
+            var entity = await GetByIdAsync(id, cancellationToken);
+            if (entity == null)
             {
-                return await DbSet.FindAsync(new object[] { id! }, cancellationToken);
+                throw new EntityNotFoundException(typeof(T), id.ToString());
             }
-            catch (Exception ex)
-            {
-                throw new RepositoryException(typeof(T), "GetByIdAsync", ex);
-            }
+            return entity;
         }
     }
 }

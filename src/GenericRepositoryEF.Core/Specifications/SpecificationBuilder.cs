@@ -4,7 +4,7 @@ using GenericRepositoryEF.Core.Interfaces;
 namespace GenericRepositoryEF.Core.Specifications
 {
     /// <summary>
-    /// Builder for specifications.
+    /// Specification builder for fluent API.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
     public class SpecificationBuilder<T> : BaseSpecification<T> where T : class, IEntity
@@ -49,30 +49,31 @@ namespace GenericRepositoryEF.Core.Specifications
         }
 
         /// <summary>
-        /// Configures the specification to apply paging.
+        /// Applies pagination.
         /// </summary>
-        /// <param name="skip">The number of entities to skip.</param>
-        /// <param name="take">The number of entities to take.</param>
+        /// <param name="skip">The skip.</param>
+        /// <param name="take">The take.</param>
         /// <returns>The specification builder.</returns>
-        public SpecificationBuilder<T> WithPaging(int skip, int take)
+        public SpecificationBuilder<T> Paginate(int skip, int take)
         {
             ApplyPaging(skip, take);
             return this;
         }
 
         /// <summary>
-        /// Configures the specification for paging by page number and page size.
+        /// Applies pagination with a page number and size.
         /// </summary>
         /// <param name="pageNumber">The page number.</param>
         /// <param name="pageSize">The page size.</param>
         /// <returns>The specification builder.</returns>
-        public SpecificationBuilder<T> WithPage(int pageNumber, int pageSize)
+        public SpecificationBuilder<T> Page(int pageNumber, int pageSize)
         {
-            return WithPaging((pageNumber - 1) * pageSize, pageSize);
+            ApplyPagingWithPageNumber(pageNumber, pageSize);
+            return this;
         }
 
         /// <summary>
-        /// Configures the specification to apply an order by.
+        /// Applies an "order by" expression.
         /// </summary>
         /// <param name="orderByExpression">The order by expression.</param>
         /// <returns>The specification builder.</returns>
@@ -83,7 +84,7 @@ namespace GenericRepositoryEF.Core.Specifications
         }
 
         /// <summary>
-        /// Configures the specification to apply an order by descending.
+        /// Applies an "order by descending" expression.
         /// </summary>
         /// <param name="orderByDescendingExpression">The order by descending expression.</param>
         /// <returns>The specification builder.</returns>
@@ -94,7 +95,7 @@ namespace GenericRepositoryEF.Core.Specifications
         }
 
         /// <summary>
-        /// Configures the specification to apply a group by.
+        /// Applies a "group by" expression.
         /// </summary>
         /// <param name="groupByExpression">The group by expression.</param>
         /// <returns>The specification builder.</returns>
@@ -105,12 +106,22 @@ namespace GenericRepositoryEF.Core.Specifications
         }
 
         /// <summary>
-        /// Configures the specification for no tracking.
+        /// Disables tracking of entities.
         /// </summary>
         /// <returns>The specification builder.</returns>
         public SpecificationBuilder<T> AsNoTracking()
         {
             DisableTracking();
+            return this;
+        }
+
+        /// <summary>
+        /// Enables tracking of entities.
+        /// </summary>
+        /// <returns>The specification builder.</returns>
+        public SpecificationBuilder<T> WithTracking()
+        {
+            EnableTracking();
             return this;
         }
     }
