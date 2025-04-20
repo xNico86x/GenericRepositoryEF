@@ -1,9 +1,11 @@
-namespace GenericRepositoryEF.Extensions
+using GenericRepositoryEF.Core.Interfaces;
+
+namespace GenericRepositoryEF.Extensions.DependencyInjection
 {
     /// <summary>
     /// Options for configuring the repository services.
     /// </summary>
-    public class RepositoryOptions
+    public class ServiceConfigurationOptions
     {
         /// <summary>
         /// Gets or sets a value indicating whether to use caching.
