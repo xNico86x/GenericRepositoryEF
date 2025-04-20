@@ -19,8 +19,7 @@ namespace GenericRepositoryEF.Core.Interfaces
         /// Adds a collection of entities.
         /// </summary>
         /// <param name="entities">The entities to add.</param>
-        /// <returns>The added entities.</returns>
-        IEnumerable<T> AddRange(IEnumerable<T> entities);
+        void AddRange(IEnumerable<T> entities);
 
         /// <summary>
         /// Adds a new entity.
@@ -35,8 +34,8 @@ namespace GenericRepositoryEF.Core.Interfaces
         /// </summary>
         /// <param name="entities">The entities to add.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The added entities.</returns>
-        Task<IEnumerable<T>> AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Updates an entity.
@@ -49,8 +48,7 @@ namespace GenericRepositoryEF.Core.Interfaces
         /// Updates a collection of entities.
         /// </summary>
         /// <param name="entities">The entities to update.</param>
-        /// <returns>The updated entities.</returns>
-        IEnumerable<T> UpdateRange(IEnumerable<T> entities);
+        void UpdateRange(IEnumerable<T> entities);
 
         /// <summary>
         /// Deletes an entity.

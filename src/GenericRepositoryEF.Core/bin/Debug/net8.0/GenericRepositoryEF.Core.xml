@@ -9,6 +9,11 @@
             Exception thrown when a concurrency conflict occurs.
             </summary>
         </member>
+        <member name="P:GenericRepositoryEF.Core.Exceptions.ConcurrencyException.EntityId">
+            <summary>
+            Gets or sets the entity identifier.
+            </summary>
+        </member>
         <member name="M:GenericRepositoryEF.Core.Exceptions.ConcurrencyException.#ctor">
             <summary>
             Initializes a new instance of the <see cref="T:GenericRepositoryEF.Core.Exceptions.ConcurrencyException"/> class.
@@ -42,7 +47,7 @@
         </member>
         <member name="P:GenericRepositoryEF.Core.Exceptions.EntityNotFoundException.EntityId">
             <summary>
-            Gets the entity identifier.
+            Gets or sets the entity identifier.
             </summary>
         </member>
         <member name="M:GenericRepositoryEF.Core.Exceptions.EntityNotFoundException.#ctor">
@@ -140,67 +145,161 @@
             <param name="message">The error message.</param>
             <param name="innerException">The inner exception.</param>
         </member>
-        <member name="T:GenericRepositoryEF.Core.Interfaces.IAuditableEntity">
+        <member name="T:GenericRepositoryEF.Core.Extensions.QueryableExtensions">
             <summary>
-            Represents an entity that is auditable.
+            Extension methods for IQueryable.
             </summary>
         </member>
-        <member name="P:GenericRepositoryEF.Core.Interfaces.IAuditableEntity.CreatedAt">
+        <member name="M:GenericRepositoryEF.Core.Extensions.QueryableExtensions.AsNoTracking``1(System.Linq.IQueryable{``0})">
             <summary>
-            Gets or sets the created at date and time.
+            Tracks the query results or returns them as no-tracking.
             </summary>
+            <typeparam name="T">The type of entity.</typeparam>
+            <param name="query">The query.</param>
+            <param name="track">Whether to track the entities.</param>
+            <returns>The query with tracking set.</returns>
         </member>
-        <member name="P:GenericRepositoryEF.Core.Interfaces.IAuditableEntity.CreatedBy">
+        <member name="M:GenericRepositoryEF.Core.Extensions.QueryableExtensions.Include``1(System.Linq.IQueryable{``0},System.String)">
             <summary>
-            Gets or sets the created by identifier.
+            Includes a related entity in the query.
             </summary>
+            <typeparam name="T">The type of entity.</typeparam>
+            <param name="query">The query.</param>
+            <param name="path">The include path.</param>
+            <returns>The query with the include.</returns>
         </member>
-        <member name="P:GenericRepositoryEF.Core.Interfaces.IAuditableEntity.ModifiedAt">
+        <member name="M:GenericRepositoryEF.Core.Extensions.QueryableExtensions.Include``2(System.Linq.IQueryable{``0},System.Linq.Expressions.Expression{System.Func{``0,``1}})">
             <summary>
-            Gets or sets the modified at date and time.
+            Includes a related entity in the query.
             </summary>
-        </member>
-        <member name="P:GenericRepositoryEF.Core.Interfaces.IAuditableEntity.ModifiedBy">
-            <summary>
-            Gets or sets the modified by identifier.
-            </summary>
+            <typeparam name="T">The type of entity.</typeparam>
+            <typeparam name="TProperty">The type of the property.</typeparam>
+            <param name="query">The query.</param>
+            <param name="path">The include path.</param>
+            <returns>The query with the include.</returns>
         </member>
         <member name="T:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1">
             <summary>
-            Interface for a cached repository.
+            Interface for a cached repository that adds caching support to a standard repository.
             </summary>
             <typeparam name="T">The type of entity.</typeparam>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1.InvalidateCacheAsync(System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1.RefreshCache(System.Object)">
             <summary>
-            Invalidates the cache for the entity type.
+            Refreshes the cache for an entity by ID.
+            </summary>
+            <param name="id">The ID of the entity.</param>
+            <returns>True if the cache was refreshed, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1.RefreshCacheAsync(System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Refreshes the cache for an entity by ID.
+            </summary>
+            <param name="id">The ID of the entity.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>True if the cache was refreshed, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1.RefreshCache(GenericRepositoryEF.Core.Interfaces.ISpecification{`0})">
+            <summary>
+            Refreshes the cache for a collection of entities.
+            </summary>
+            <param name="specification">The specification to refresh.</param>
+            <returns>True if the cache was refreshed, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1.RefreshCacheAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
+            <summary>
+            Refreshes the cache for a collection of entities.
+            </summary>
+            <param name="specification">The specification to refresh.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>True if the cache was refreshed, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1.RefreshEntireCache">
+            <summary>
+            Refreshes the entire cache for the entity type.
+            </summary>
+            <returns>True if the cache was refreshed, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1.RefreshEntireCacheAsync(System.Threading.CancellationToken)">
+            <summary>
+            Refreshes the entire cache for the entity type.
             </summary>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>A task that represents the asynchronous operation.</returns>
+            <returns>True if the cache was refreshed, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1.RemoveFromCache(System.Object)">
+            <summary>
+            Removes an item from the cache.
+            </summary>
+            <param name="id">The ID of the entity.</param>
+            <returns>True if the item was removed, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1.RemoveFromCacheAsync(System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Removes an item from the cache.
+            </summary>
+            <param name="id">The ID of the entity.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>True if the item was removed, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1.ClearCache">
+            <summary>
+            Clears the entire cache for the entity type.
+            </summary>
+            <returns>True if the cache was cleared, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`1.ClearCacheAsync(System.Threading.CancellationToken)">
+            <summary>
+            Clears the entire cache for the entity type.
+            </summary>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>True if the cache was cleared, otherwise false.</returns>
         </member>
         <member name="T:GenericRepositoryEF.Core.Interfaces.ICachedRepository`2">
             <summary>
-            Interface for a cached repository with a key.
+            Interface for a cached repository that adds caching support to a standard repository with a key.
             </summary>
             <typeparam name="T">The type of entity.</typeparam>
             <typeparam name="TKey">The type of the key.</typeparam>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`2.InvalidateCacheForIdAsync(`1,System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`2.RefreshCache(`1)">
             <summary>
-            Invalidates the cache for the entity with the specified identifier.
+            Refreshes the cache for an entity by ID.
             </summary>
-            <param name="id">The identifier.</param>
+            <param name="id">The ID of the entity.</param>
+            <returns>True if the cache was refreshed, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`2.RefreshCacheAsync(`1,System.Threading.CancellationToken)">
+            <summary>
+            Refreshes the cache for an entity by ID.
+            </summary>
+            <param name="id">The ID of the entity.</param>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>A task that represents the asynchronous operation.</returns>
+            <returns>True if the cache was refreshed, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`2.RemoveFromCache(`1)">
+            <summary>
+            Removes an item from the cache.
+            </summary>
+            <param name="id">The ID of the entity.</param>
+            <returns>True if the item was removed, otherwise false.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ICachedRepository`2.RemoveFromCacheAsync(`1,System.Threading.CancellationToken)">
+            <summary>
+            Removes an item from the cache.
+            </summary>
+            <param name="id">The ID of the entity.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>True if the item was removed, otherwise false.</returns>
         </member>
         <member name="T:GenericRepositoryEF.Core.Interfaces.ICurrentUserService">
             <summary>
-            Interface for the current user service.
+            Interface for obtaining information about the current user.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Interfaces.ICurrentUserService.UserId">
             <summary>
-            Gets the user identifier.
+            Gets the current user identifier.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Interfaces.ICurrentUserService.IsAuthenticated">
@@ -208,39 +307,120 @@
             Gets a value indicating whether the user is authenticated.
             </summary>
         </member>
-        <member name="T:GenericRepositoryEF.Core.Interfaces.IDateTime">
+        <member name="P:GenericRepositoryEF.Core.Interfaces.ICurrentUserService.UserName">
             <summary>
-            Interface for date time service.
+            Gets the current user name.
             </summary>
         </member>
-        <member name="P:GenericRepositoryEF.Core.Interfaces.IDateTime.UtcNow">
+        <member name="P:GenericRepositoryEF.Core.Interfaces.ICurrentUserService.Roles">
             <summary>
-            Gets the current date and time in UTC.
+            Gets the user roles.
+            </summary>
+        </member>
+        <member name="T:GenericRepositoryEF.Core.Interfaces.IDateTime">
+            <summary>
+            Interface for obtaining the current date and time.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Interfaces.IDateTime.Now">
             <summary>
-            Gets the current date and time in the local time zone.
+            Gets the current date time.
             </summary>
         </member>
-        <member name="P:GenericRepositoryEF.Core.Interfaces.IDateTime.UtcToday">
+        <member name="P:GenericRepositoryEF.Core.Interfaces.IDateTime.UtcNow">
             <summary>
-            Gets the current date in UTC.
+            Gets the current UTC date time.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Interfaces.IDateTime.Today">
             <summary>
-            Gets the current date in the local time zone.
+            Gets the current date.
             </summary>
         </member>
         <member name="T:GenericRepositoryEF.Core.Interfaces.IEntity">
             <summary>
-            Represents an entity.
+            Interface for an entity with an ID.
+            </summary>
+        </member>
+        <member name="P:GenericRepositoryEF.Core.Interfaces.IEntity.Id">
+            <summary>
+            Gets or sets the identifier.
+            </summary>
+        </member>
+        <member name="T:GenericRepositoryEF.Core.Interfaces.IEntity`1">
+            <summary>
+            Interface for a strongly typed entity with an ID.
+            </summary>
+            <typeparam name="TId">The type of the ID.</typeparam>
+        </member>
+        <member name="P:GenericRepositoryEF.Core.Interfaces.IEntity`1.Id">
+            <summary>
+            Gets or sets the identifier.
+            </summary>
+        </member>
+        <member name="T:GenericRepositoryEF.Core.Interfaces.IAuditableEntity">
+            <summary>
+            Interface for an auditable entity.
+            </summary>
+        </member>
+        <member name="P:GenericRepositoryEF.Core.Interfaces.IAuditableEntity.CreatedAt">
+            <summary>
+            Gets or sets the date the entity was created.
+            </summary>
+        </member>
+        <member name="P:GenericRepositoryEF.Core.Interfaces.IAuditableEntity.CreatedBy">
+            <summary>
+            Gets or sets the user that created the entity.
+            </summary>
+        </member>
+        <member name="P:GenericRepositoryEF.Core.Interfaces.IAuditableEntity.ModifiedAt">
+            <summary>
+            Gets or sets the date the entity was last modified.
+            </summary>
+        </member>
+        <member name="P:GenericRepositoryEF.Core.Interfaces.IAuditableEntity.ModifiedBy">
+            <summary>
+            Gets or sets the user that last modified the entity.
+            </summary>
+        </member>
+        <member name="T:GenericRepositoryEF.Core.Interfaces.ISoftDelete">
+            <summary>
+            Interface for a soft delete entity.
+            </summary>
+        </member>
+        <member name="P:GenericRepositoryEF.Core.Interfaces.ISoftDelete.IsDeleted">
+            <summary>
+            Gets or sets a value indicating whether the entity is deleted.
+            </summary>
+        </member>
+        <member name="P:GenericRepositoryEF.Core.Interfaces.ISoftDelete.DeletedAt">
+            <summary>
+            Gets or sets the date the entity was deleted.
+            </summary>
+        </member>
+        <member name="T:GenericRepositoryEF.Core.Interfaces.ISoftDeleteWithUser">
+            <summary>
+            Interface for a soft delete entity with user information.
+            </summary>
+        </member>
+        <member name="P:GenericRepositoryEF.Core.Interfaces.ISoftDeleteWithUser.DeletedBy">
+            <summary>
+            Gets or sets the user that deleted the entity.
+            </summary>
+        </member>
+        <member name="T:GenericRepositoryEF.Core.Interfaces.IConcurrencyCheck">
+            <summary>
+            Interface for a concurrency checked entity.
+            </summary>
+        </member>
+        <member name="P:GenericRepositoryEF.Core.Interfaces.IConcurrencyCheck.ConcurrencyStamp">
+            <summary>
+            Gets or sets the concurrency stamp.
             </summary>
         </member>
         <member name="T:GenericRepositoryEF.Core.Interfaces.IEntityWithKey`1">
             <summary>
-            Represents an entity with a key.
+            Interface for an entity with a key of a specific type.
             </summary>
             <typeparam name="TKey">The type of the key.</typeparam>
         </member>
@@ -255,91 +435,140 @@
             </summary>
             <typeparam name="T">The type of entity.</typeparam>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.ListAllAsync(System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.Find(System.Object)">
             <summary>
-            Gets all entities asynchronously.
+            Finds an entity by ID.
+            </summary>
+            <param name="id">The ID of the entity to find.</param>
+            <returns>The found entity or null.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.FindAsync(System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Finds an entity by ID.
+            </summary>
+            <param name="id">The ID of the entity to find.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>The found entity or null.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.GetAll">
+            <summary>
+            Gets all entities.
+            </summary>
+            <returns>All entities.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.GetAll(GenericRepositoryEF.Core.Interfaces.ISpecification{`0})">
+            <summary>
+            Gets all entities with a specification.
+            </summary>
+            <param name="specification">The specification.</param>
+            <returns>The found entities.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.GetAllAsync(System.Threading.CancellationToken)">
+            <summary>
+            Gets all entities.
             </summary>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>A collection of entities.</returns>
+            <returns>All entities.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.ListAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.GetAllAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
             <summary>
-            Gets entities using a specification asynchronously.
+            Gets all entities with a specification.
             </summary>
             <param name="specification">The specification.</param>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>A collection of entities.</returns>
+            <returns>The found entities.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.FirstOrDefaultAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.GetSingleOrDefault(GenericRepositoryEF.Core.Interfaces.ISpecification{`0})">
             <summary>
-            Gets a single entity using a specification asynchronously.
+            Gets a single entity with a specification.
+            </summary>
+            <param name="specification">The specification.</param>
+            <returns>The found entity or null.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.GetSingleOrDefaultAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
+            <summary>
+            Gets a single entity with a specification.
             </summary>
             <param name="specification">The specification.</param>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>The entity, or null if no entity was found.</returns>
+            <returns>The found entity or null.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.FirstAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.GetFirstOrDefault(GenericRepositoryEF.Core.Interfaces.ISpecification{`0})">
             <summary>
-            Gets a single entity using a specification asynchronously, throws if no entity was found.
+            Gets the first entity with a specification.
+            </summary>
+            <param name="specification">The specification.</param>
+            <returns>The found entity or null.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.GetFirstOrDefaultAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
+            <summary>
+            Gets the first entity with a specification.
             </summary>
             <param name="specification">The specification.</param>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>The entity.</returns>
+            <returns>The found entity or null.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.SingleOrDefaultAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.Count">
             <summary>
-            Gets a single entity using a specification asynchronously.
+            Counts the number of entities.
+            </summary>
+            <returns>The number of entities.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.Count(GenericRepositoryEF.Core.Interfaces.ISpecification{`0})">
+            <summary>
+            Counts the number of entities with a specification.
             </summary>
             <param name="specification">The specification.</param>
-            <param name="cancellationToken">The cancellation token.</param>
-            <returns>The entity, or null if no entity was found.</returns>
+            <returns>The number of entities.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.SingleAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.CountAsync(System.Threading.CancellationToken)">
             <summary>
-            Gets a single entity using a specification asynchronously, throws if no entity was found.
+            Counts the number of entities.
             </summary>
-            <param name="specification">The specification.</param>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>The entity.</returns>
+            <returns>The number of entities.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.CountAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
             <summary>
-            Counts entities using a specification asynchronously.
+            Counts the number of entities with a specification.
             </summary>
             <param name="specification">The specification.</param>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>The count of entities.</returns>
+            <returns>The number of entities.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.Any(GenericRepositoryEF.Core.Interfaces.ISpecification{`0})">
+            <summary>
+            Checks if an entity with the specification exists.
+            </summary>
+            <param name="specification">The specification.</param>
+            <returns>True if an entity exists, otherwise false.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.AnyAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
             <summary>
-            Checks if any entity matches the specification asynchronously.
+            Checks if an entity with the specification exists.
             </summary>
             <param name="specification">The specification.</param>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>True if any entity matches the specification, false otherwise.</returns>
+            <returns>True if an entity exists, otherwise false.</returns>
         </member>
-        <member name="T:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`2">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.GetPaged(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Int32,System.Int32)">
             <summary>
-            Interface for a read-only repository with a key.
+            Gets a paged result.
             </summary>
-            <typeparam name="T">The type of entity.</typeparam>
-            <typeparam name="TKey">The type of the key.</typeparam>
+            <param name="specification">The specification.</param>
+            <param name="pageNumber">The page number.</param>
+            <param name="pageSize">The page size.</param>
+            <returns>The paged result.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`2.GetByIdAsync(`1,System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`1.GetPagedAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Int32,System.Int32,System.Threading.CancellationToken)">
             <summary>
-            Gets an entity by its identifier asynchronously.
+            Gets a paged result.
             </summary>
-            <param name="id">The identifier.</param>
+            <param name="specification">The specification.</param>
+            <param name="pageNumber">The page number.</param>
+            <param name="pageSize">The page size.</param>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>The entity, or null if the entity does not exist.</returns>
-        </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IReadOnlyRepository`2.GetByIdOrThrowAsync(`1,System.Threading.CancellationToken)">
-            <summary>
-            Gets an entity by its identifier asynchronously, throws if the entity does not exist.
-            </summary>
-            <param name="id">The identifier.</param>
-            <param name="cancellationToken">The cancellation token.</param>
-            <returns>The entity.</returns>
+            <returns>The paged result.</returns>
         </member>
         <member name="T:GenericRepositoryEF.Core.Interfaces.IRepository`1">
             <summary>
@@ -347,105 +576,207 @@
             </summary>
             <typeparam name="T">The type of entity.</typeparam>
         </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.Add(`0)">
+            <summary>
+            Adds a new entity.
+            </summary>
+            <param name="entity">The entity to add.</param>
+            <returns>The added entity.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.AddRange(System.Collections.Generic.IEnumerable{`0})">
+            <summary>
+            Adds a collection of entities.
+            </summary>
+            <param name="entities">The entities to add.</param>
+        </member>
         <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.AddAsync(`0,System.Threading.CancellationToken)">
             <summary>
-            Adds an entity asynchronously.
+            Adds a new entity.
             </summary>
-            <param name="entity">The entity.</param>
+            <param name="entity">The entity to add.</param>
             <param name="cancellationToken">The cancellation token.</param>
             <returns>The added entity.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.AddRangeAsync(System.Collections.Generic.IEnumerable{`0},System.Threading.CancellationToken)">
             <summary>
-            Adds a range of entities asynchronously.
+            Adds a collection of entities.
             </summary>
-            <param name="entities">The entities.</param>
+            <param name="entities">The entities to add.</param>
             <param name="cancellationToken">The cancellation token.</param>
             <returns>A task that represents the asynchronous operation.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.UpdateAsync(`0,System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.Update(`0)">
             <summary>
-            Updates an entity asynchronously.
+            Updates an entity.
             </summary>
-            <param name="entity">The entity.</param>
-            <param name="cancellationToken">The cancellation token.</param>
+            <param name="entity">The entity to update.</param>
             <returns>The updated entity.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.UpdateRangeAsync(System.Collections.Generic.IEnumerable{`0},System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.UpdateRange(System.Collections.Generic.IEnumerable{`0})">
             <summary>
-            Updates a range of entities asynchronously.
+            Updates a collection of entities.
             </summary>
-            <param name="entities">The entities.</param>
-            <param name="cancellationToken">The cancellation token.</param>
-            <returns>A task that represents the asynchronous operation.</returns>
+            <param name="entities">The entities to update.</param>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.DeleteAsync(`0,System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.Delete(`0)">
             <summary>
-            Deletes an entity asynchronously.
+            Deletes an entity.
             </summary>
-            <param name="entity">The entity.</param>
-            <param name="cancellationToken">The cancellation token.</param>
-            <returns>A task that represents the asynchronous operation.</returns>
+            <param name="entity">The entity to delete.</param>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.DeleteRangeAsync(System.Collections.Generic.IEnumerable{`0},System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.Delete(System.Object)">
             <summary>
-            Deletes a range of entities asynchronously.
+            Deletes an entity by ID.
             </summary>
-            <param name="entities">The entities.</param>
-            <param name="cancellationToken">The cancellation token.</param>
-            <returns>A task that represents the asynchronous operation.</returns>
+            <param name="id">The ID of the entity.</param>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.DeleteAsync(GenericRepositoryEF.Core.Interfaces.ISpecification{`0},System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.DeleteRange(System.Collections.Generic.IEnumerable{`0})">
             <summary>
-            Deletes entities using a specification asynchronously.
+            Deletes a collection of entities.
             </summary>
-            <param name="specification">The specification.</param>
+            <param name="entities">The entities to delete.</param>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.Delete(GenericRepositoryEF.Core.Interfaces.ISpecification{`0})">
+            <summary>
+            Deletes entities based on a specification.
+            </summary>
+            <param name="specification">The specification to match entities to delete.</param>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.SaveChanges">
+            <summary>
+            Saves changes to the repository.
+            </summary>
+            <returns>The number of entities saved.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`1.SaveChangesAsync(System.Threading.CancellationToken)">
+            <summary>
+            Saves changes to the repository.
+            </summary>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>The number of entities deleted.</returns>
+            <returns>The number of entities saved.</returns>
+        </member>
+        <member name="T:GenericRepositoryEF.Core.Interfaces.IRepositoryFactory">
+            <summary>
+            Factory for creating repositories.
+            </summary>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepositoryFactory.GetRepository``1">
+            <summary>
+            Gets a repository for the specified entity type.
+            </summary>
+            <typeparam name="T">The type of entity.</typeparam>
+            <returns>The repository.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepositoryFactory.GetRepository``2">
+            <summary>
+            Gets a repository for the specified entity type with a key.
+            </summary>
+            <typeparam name="T">The type of entity.</typeparam>
+            <typeparam name="TKey">The type of the key.</typeparam>
+            <returns>The repository.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepositoryFactory.GetReadOnlyRepository``1">
+            <summary>
+            Gets a read-only repository for the specified entity type.
+            </summary>
+            <typeparam name="T">The type of entity.</typeparam>
+            <returns>The read-only repository.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepositoryFactory.GetCachedRepository``1">
+            <summary>
+            Gets a cached repository for the specified entity type.
+            </summary>
+            <typeparam name="T">The type of entity.</typeparam>
+            <returns>The cached repository.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepositoryFactory.GetCachedRepository``2">
+            <summary>
+            Gets a cached repository for the specified entity type with a key.
+            </summary>
+            <typeparam name="T">The type of entity.</typeparam>
+            <typeparam name="TKey">The type of the key.</typeparam>
+            <returns>The cached repository.</returns>
         </member>
         <member name="T:GenericRepositoryEF.Core.Interfaces.IRepository`2">
             <summary>
-            Interface for a repository with a key.
+            Interface for a repository with a typed key.
             </summary>
             <typeparam name="T">The type of entity.</typeparam>
             <typeparam name="TKey">The type of the key.</typeparam>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`2.DeleteByIdAsync(`1,System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`2.GetById(`1)">
             <summary>
-            Deletes an entity by its identifier asynchronously.
+            Gets an entity by ID.
             </summary>
-            <param name="id">The identifier.</param>
+            <param name="id">The ID of the entity.</param>
+            <returns>The entity or null.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`2.GetByIdAsync(`1,System.Threading.CancellationToken)">
+            <summary>
+            Gets an entity by ID asynchronously.
+            </summary>
+            <param name="id">The ID of the entity.</param>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>True if the entity was deleted, false otherwise.</returns>
+            <returns>The entity or null.</returns>
         </member>
-        <member name="T:GenericRepositoryEF.Core.Interfaces.ISoftDelete">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`2.GetByIdOrThrow(`1)">
             <summary>
-            Represents an entity that can be soft deleted.
+            Gets an entity by ID or throws if not found.
+            </summary>
+            <param name="id">The ID of the entity.</param>
+            <returns>The entity.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`2.GetByIdOrThrowAsync(`1,System.Threading.CancellationToken)">
+            <summary>
+            Gets an entity by ID asynchronously or throws if not found.
+            </summary>
+            <param name="id">The ID of the entity.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>The entity.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`2.Delete(`1)">
+            <summary>
+            Deletes an entity by ID.
+            </summary>
+            <param name="id">The ID of the entity.</param>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IRepository`2.DeleteAsync(`1,System.Threading.CancellationToken)">
+            <summary>
+            Deletes an entity by ID asynchronously.
+            </summary>
+            <param name="id">The ID of the entity.</param>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>A task that represents the asynchronous operation.</returns>
+        </member>
+        <member name="T:GenericRepositoryEF.Core.Interfaces.ISpecificationEvaluator">
+            <summary>
+            Non-generic specification evaluator interface.
             </summary>
         </member>
-        <member name="P:GenericRepositoryEF.Core.Interfaces.ISoftDelete.IsDeleted">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ISpecificationEvaluator.For``1">
             <summary>
-            Gets or sets a value indicating whether the entity is deleted.
+            Gets a typed specification evaluator.
             </summary>
+            <typeparam name="T">The type of entity.</typeparam>
+            <returns>The specification evaluator.</returns>
         </member>
-        <member name="P:GenericRepositoryEF.Core.Interfaces.ISoftDelete.DeletedAt">
+        <member name="T:GenericRepositoryEF.Core.Interfaces.ISpecificationEvaluator`1">
             <summary>
-            Gets or sets the deleted at date and time.
+            Specification evaluator interface.
             </summary>
+            <typeparam name="T">The type of entity.</typeparam>
         </member>
-        <member name="T:GenericRepositoryEF.Core.Interfaces.ISoftDeleteWithUser">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.ISpecificationEvaluator`1.GetQuery(System.Linq.IQueryable{`0},GenericRepositoryEF.Core.Interfaces.ISpecification{`0})">
             <summary>
-            Represents an entity that can be soft deleted with user information.
+            Gets a query with a specification applied.
             </summary>
-        </member>
-        <member name="P:GenericRepositoryEF.Core.Interfaces.ISoftDeleteWithUser.DeletedBy">
-            <summary>
-            Gets or sets the deleted by identifier.
-            </summary>
+            <param name="inputQuery">The input query.</param>
+            <param name="specification">The specification.</param>
+            <returns>The query with the specification applied.</returns>
         </member>
         <member name="T:GenericRepositoryEF.Core.Interfaces.ISpecification`1">
             <summary>
-            Interface for a specification.
+            Interface for a specification that can be applied to a query.
             </summary>
             <typeparam name="T">The type of entity.</typeparam>
         </member>
@@ -456,7 +787,7 @@
         </member>
         <member name="P:GenericRepositoryEF.Core.Interfaces.ISpecification`1.Includes">
             <summary>
-            Gets the includes.
+            Gets the include expressions.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Interfaces.ISpecification`1.IncludeStrings">
@@ -466,22 +797,27 @@
         </member>
         <member name="P:GenericRepositoryEF.Core.Interfaces.ISpecification`1.OrderBy">
             <summary>
-            Gets the order by.
+            Gets the order by expression.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Interfaces.ISpecification`1.OrderByDescending">
             <summary>
-            Gets the order by descending.
+            Gets the order by descending expression.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Interfaces.ISpecification`1.GroupBy">
             <summary>
-            Gets the group by.
+            Gets the group by expression.
+            </summary>
+        </member>
+        <member name="P:GenericRepositoryEF.Core.Interfaces.ISpecification`1.IsTrackingEnabled">
+            <summary>
+            Gets a value indicating whether the entity should be tracked.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Interfaces.ISpecification`1.IsPagingEnabled">
             <summary>
-            Gets a value indicating whether paging is enabled.
+            Gets a value indicating whether the query is paging enabled.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Interfaces.ISpecification`1.Skip">
@@ -493,25 +829,6 @@
             <summary>
             Gets the number of items to take.
             </summary>
-        </member>
-        <member name="P:GenericRepositoryEF.Core.Interfaces.ISpecification`1.IsTrackingEnabled">
-            <summary>
-            Gets a value indicating whether tracking is enabled.
-            </summary>
-        </member>
-        <member name="T:GenericRepositoryEF.Core.Interfaces.ISpecificationEvaluator">
-            <summary>
-            Interface for a specification evaluator.
-            </summary>
-        </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.ISpecificationEvaluator.GetQuery``1(System.Linq.IQueryable{``0},GenericRepositoryEF.Core.Interfaces.ISpecification{``0})">
-            <summary>
-            Creates a query using the specification.
-            </summary>
-            <typeparam name="T">The type of entity.</typeparam>
-            <param name="query">The input query.</param>
-            <param name="specification">The specification.</param>
-            <returns>The query with the applied specification.</returns>
         </member>
         <member name="T:GenericRepositoryEF.Core.Interfaces.ITransaction">
             <summary>
@@ -534,53 +851,105 @@
         </member>
         <member name="T:GenericRepositoryEF.Core.Interfaces.IUnitOfWork">
             <summary>
-            Interface for a unit of work.
+            Interface for the unit of work pattern.
             </summary>
         </member>
         <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.Repository``1">
             <summary>
-            Gets a repository for a given entity type.
+            Gets a repository for the specified entity type.
             </summary>
             <typeparam name="T">The type of entity.</typeparam>
-            <returns>The repository.</returns>
-        </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.Repository``2">
-            <summary>
-            Gets a repository for a given entity type with a key.
-            </summary>
-            <typeparam name="T">The type of entity.</typeparam>
-            <typeparam name="TKey">The type of the key.</typeparam>
-            <returns>The repository.</returns>
+            <returns>A repository for the entity type.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.ReadOnlyRepository``1">
             <summary>
-            Gets a read-only repository for a given entity type.
+            Gets a read-only repository for the specified entity type.
             </summary>
             <typeparam name="T">The type of entity.</typeparam>
-            <returns>The repository.</returns>
+            <returns>A read-only repository for the entity type.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.ReadOnlyRepository``2">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.CachedRepository``1">
             <summary>
-            Gets a read-only repository for a given entity type with a key.
+            Gets a cached repository for the specified entity type.
             </summary>
             <typeparam name="T">The type of entity.</typeparam>
-            <typeparam name="TKey">The type of the key.</typeparam>
-            <returns>The repository.</returns>
+            <returns>A cached repository for the entity type.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.BeginTransactionAsync(System.Data.IsolationLevel,System.Threading.CancellationToken)">
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.BeginTransaction">
             <summary>
             Begins a transaction.
             </summary>
+            <returns>A transaction.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.BeginTransaction(System.Data.IsolationLevel)">
+            <summary>
+            Begins a transaction with the specified isolation level.
+            </summary>
+            <param name="isolationLevel">The isolation level.</param>
+            <returns>A transaction.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.BeginTransactionAsync(System.Threading.CancellationToken)">
+            <summary>
+            Begins a transaction asynchronously.
+            </summary>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>A transaction.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.BeginTransactionAsync(System.Data.IsolationLevel,System.Threading.CancellationToken)">
+            <summary>
+            Begins a transaction with the specified isolation level asynchronously.
+            </summary>
             <param name="isolationLevel">The isolation level.</param>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>The transaction.</returns>
+            <returns>A transaction.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.CommitTransaction">
+            <summary>
+            Commits the transaction.
+            </summary>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.RollbackTransaction">
+            <summary>
+            Rolls back the transaction.
+            </summary>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.CommitTransactionAsync(System.Threading.CancellationToken)">
+            <summary>
+            Commits the transaction asynchronously.
+            </summary>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>A task that represents the asynchronous operation.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.RollbackTransactionAsync(System.Threading.CancellationToken)">
+            <summary>
+            Rolls back the transaction asynchronously.
+            </summary>
+            <param name="cancellationToken">The cancellation token.</param>
+            <returns>A task that represents the asynchronous operation.</returns>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.SaveChanges">
+            <summary>
+            Saves all changes made in this context to the database.
+            </summary>
+            <returns>The number of affected entities.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWork.SaveChangesAsync(System.Threading.CancellationToken)">
             <summary>
-            Saves changes to the database.
+            Saves all changes made in this context to the database asynchronously.
             </summary>
             <param name="cancellationToken">The cancellation token.</param>
-            <returns>The number of entities written to the database.</returns>
+            <returns>The number of affected entities.</returns>
+        </member>
+        <member name="T:GenericRepositoryEF.Core.Interfaces.IUnitOfWorkFactory">
+            <summary>
+            Factory for creating units of work.
+            </summary>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Interfaces.IUnitOfWorkFactory.CreateUnitOfWork">
+            <summary>
+            Creates a unit of work.
+            </summary>
+            <returns>The unit of work.</returns>
         </member>
         <member name="T:GenericRepositoryEF.Core.Models.OrderByDirection">
             <summary>
@@ -599,28 +968,28 @@
         </member>
         <member name="T:GenericRepositoryEF.Core.Models.PagedResult`1">
             <summary>
-            Represents a paged result of elements.
+            Represents a paged result.
             </summary>
-            <typeparam name="T">The type of elements.</typeparam>
+            <typeparam name="T">The type of the items.</typeparam>
         </member>
         <member name="P:GenericRepositoryEF.Core.Models.PagedResult`1.Items">
             <summary>
-            Gets the items.
+            Gets or sets the items.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Models.PagedResult`1.TotalCount">
             <summary>
-            Gets the total count.
+            Gets or sets the total count.
             </summary>
         </member>
-        <member name="P:GenericRepositoryEF.Core.Models.PagedResult`1.PageNumber">
+        <member name="P:GenericRepositoryEF.Core.Models.PagedResult`1.Page">
             <summary>
-            Gets the page number.
+            Gets or sets the current page.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Models.PagedResult`1.PageSize">
             <summary>
-            Gets the page size.
+            Gets or sets the page size.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Models.PagedResult`1.TotalPages">
@@ -630,36 +999,48 @@
         </member>
         <member name="P:GenericRepositoryEF.Core.Models.PagedResult`1.HasPreviousPage">
             <summary>
-            Gets a value indicating whether there is a previous page.
+            Gets a value indicating whether this page has a previous page.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Models.PagedResult`1.HasNextPage">
             <summary>
-            Gets a value indicating whether there is a next page.
+            Gets a value indicating whether this page has a next page.
             </summary>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Models.PagedResult`1.#ctor(System.Collections.Generic.IReadOnlyList{`0},System.Int32,System.Int32,System.Int32)">
+        <member name="M:GenericRepositoryEF.Core.Models.PagedResult`1.Create(System.Collections.Generic.IReadOnlyList{`0},System.Int32,System.Int32,System.Int32)">
             <summary>
-            Initializes a new instance of the <see cref="T:GenericRepositoryEF.Core.Models.PagedResult`1"/> class.
+            Creates a new instance of <see cref="T:GenericRepositoryEF.Core.Models.PagedResult`1"/>.
             </summary>
             <param name="items">The items.</param>
             <param name="totalCount">The total count.</param>
-            <param name="pageNumber">The page number.</param>
+            <param name="page">The current page.</param>
             <param name="pageSize">The page size.</param>
+            <returns>A paged result.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Models.PagedResult`1.Empty(System.Int32,System.Int32)">
             <summary>
             Creates an empty paged result.
             </summary>
-            <param name="pageNumber">The page number.</param>
+            <param name="page">The current page.</param>
             <param name="pageSize">The page size.</param>
             <returns>An empty paged result.</returns>
         </member>
         <member name="T:GenericRepositoryEF.Core.Specifications.BaseSpecification`1">
             <summary>
-            Base implementation of a specification.
+            Base class for specifications.
             </summary>
             <typeparam name="T">The type of entity.</typeparam>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:GenericRepositoryEF.Core.Specifications.BaseSpecification`1"/> class.
+            </summary>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.#ctor(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Initializes a new instance of the <see cref="T:GenericRepositoryEF.Core.Specifications.BaseSpecification`1"/> class.
+            </summary>
+            <param name="criteria">The criteria.</param>
         </member>
         <member name="P:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.Criteria">
             <summary>
@@ -691,94 +1072,92 @@
             Gets the group by.
             </summary>
         </member>
+        <member name="P:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.IsTrackingEnabled">
+            <summary>
+            Gets a value indicating whether to track the entity.
+            </summary>
+        </member>
         <member name="P:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.IsPagingEnabled">
             <summary>
-            Gets a value indicating whether paging is enabled.
+            Gets a value indicating whether to enable pagination.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.Skip">
             <summary>
-            Gets the number of items to skip.
+            Gets the skip.
             </summary>
         </member>
         <member name="P:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.Take">
             <summary>
-            Gets the number of items to take.
+            Gets the take.
             </summary>
-        </member>
-        <member name="P:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.IsTrackingEnabled">
-            <summary>
-            Gets a value indicating whether tracking is enabled.
-            </summary>
-        </member>
-        <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.#ctor">
-            <summary>
-            Initializes a new instance of the <see cref="T:GenericRepositoryEF.Core.Specifications.BaseSpecification`1"/> class.
-            </summary>
-        </member>
-        <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.#ctor(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
-            <summary>
-            Initializes a new instance of the <see cref="T:GenericRepositoryEF.Core.Specifications.BaseSpecification`1"/> class.
-            </summary>
-            <param name="criteria">The criteria.</param>
         </member>
         <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.AddInclude(System.Linq.Expressions.Expression{System.Func{`0,System.Object}})">
             <summary>
-            Adds an include expression.
+            Applies an include expression.
             </summary>
             <param name="includeExpression">The include expression.</param>
+            <returns>The specification.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.AddInclude(System.String)">
             <summary>
-            Adds an include string.
+            Applies an include string.
             </summary>
             <param name="includeString">The include string.</param>
+            <returns>The specification.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.ApplyPaging(System.Int32,System.Int32)">
             <summary>
-            Applies paging.
+            Applies pagination.
             </summary>
-            <param name="skip">The number of items to skip.</param>
-            <param name="take">The number of items to take.</param>
+            <param name="skip">The skip.</param>
+            <param name="take">The take.</param>
+            <returns>The specification.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.ApplyPagingWithPageNumber(System.Int32,System.Int32)">
             <summary>
-            Applies paging with page number and page size.
+            Applies pagination with a page number and size.
             </summary>
             <param name="pageNumber">The page number.</param>
             <param name="pageSize">The page size.</param>
+            <returns>The specification.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.ApplyOrderBy(System.Linq.Expressions.Expression{System.Func{`0,System.Object}})">
             <summary>
             Applies an "order by" expression.
             </summary>
             <param name="orderByExpression">The order by expression.</param>
+            <returns>The specification.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.ApplyOrderByDescending(System.Linq.Expressions.Expression{System.Func{`0,System.Object}})">
             <summary>
             Applies an "order by descending" expression.
             </summary>
             <param name="orderByDescendingExpression">The order by descending expression.</param>
+            <returns>The specification.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.ApplyGroupBy(System.Linq.Expressions.Expression{System.Func{`0,System.Object}})">
             <summary>
             Applies a "group by" expression.
             </summary>
             <param name="groupByExpression">The group by expression.</param>
+            <returns>The specification.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.DisableTracking">
             <summary>
             Disables tracking of entities.
             </summary>
+            <returns>The specification.</returns>
         </member>
         <member name="M:GenericRepositoryEF.Core.Specifications.BaseSpecification`1.EnableTracking">
             <summary>
             Enables tracking of entities.
             </summary>
+            <returns>The specification.</returns>
         </member>
         <member name="T:GenericRepositoryEF.Core.Specifications.SpecificationBuilder`1">
             <summary>
-            Builder for specifications.
+            Specification builder for fluent API.
             </summary>
             <typeparam name="T">The type of entity.</typeparam>
         </member>
@@ -807,17 +1186,17 @@
             <param name="includeString">The include string.</param>
             <returns>The specification builder.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Specifications.SpecificationBuilder`1.WithPaging(System.Int32,System.Int32)">
+        <member name="M:GenericRepositoryEF.Core.Specifications.SpecificationBuilder`1.Paginate(System.Int32,System.Int32)">
             <summary>
-            Applies paging.
+            Applies pagination.
             </summary>
-            <param name="skip">The number of items to skip.</param>
-            <param name="take">The number of items to take.</param>
+            <param name="skip">The skip.</param>
+            <param name="take">The take.</param>
             <returns>The specification builder.</returns>
         </member>
-        <member name="M:GenericRepositoryEF.Core.Specifications.SpecificationBuilder`1.WithPagingByPageNumber(System.Int32,System.Int32)">
+        <member name="M:GenericRepositoryEF.Core.Specifications.SpecificationBuilder`1.Page(System.Int32,System.Int32)">
             <summary>
-            Applies paging with page number and page size.
+            Applies pagination with a page number and size.
             </summary>
             <param name="pageNumber">The page number.</param>
             <param name="pageSize">The page size.</param>
@@ -855,6 +1234,32 @@
             Enables tracking of entities.
             </summary>
             <returns>The specification builder.</returns>
+        </member>
+        <member name="T:GenericRepositoryEF.Core.Specifications.SpecificationEvaluator">
+            <summary>
+            Non-generic specification evaluator.
+            </summary>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Specifications.SpecificationEvaluator.For``1">
+            <summary>
+            Gets a typed specification evaluator.
+            </summary>
+            <typeparam name="T">The type of entity.</typeparam>
+            <returns>The specification evaluator.</returns>
+        </member>
+        <member name="T:GenericRepositoryEF.Core.Specifications.SpecificationEvaluator`1">
+            <summary>
+            Specification evaluator for applying specifications to queries.
+            </summary>
+            <typeparam name="T">The type of entity.</typeparam>
+        </member>
+        <member name="M:GenericRepositoryEF.Core.Specifications.SpecificationEvaluator`1.GetQuery(System.Linq.IQueryable{`0},GenericRepositoryEF.Core.Interfaces.ISpecification{`0})">
+            <summary>
+            Gets a query with a specification applied.
+            </summary>
+            <param name="inputQuery">The input query.</param>
+            <param name="specification">The specification.</param>
+            <returns>The query with the specification applied.</returns>
         </member>
     </members>
 </doc>

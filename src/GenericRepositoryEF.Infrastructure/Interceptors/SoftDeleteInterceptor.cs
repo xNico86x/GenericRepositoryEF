@@ -67,7 +67,12 @@ namespace GenericRepositoryEF.Infrastructure.Interceptors
                     entry.State = EntityState.Modified;
                     softDeleteEntity.IsDeleted = true;
                     softDeleteEntity.DeletedAt = DateTime.UtcNow;
-                    softDeleteEntity.DeletedBy = _currentUserService?.UserId ?? "System";
+                    
+                    // Set DeletedBy if the entity implements ISoftDeleteWithUser
+                    if (softDeleteEntity is ISoftDeleteWithUser softDeleteWithUser)
+                    {
+                        softDeleteWithUser.DeletedBy = _currentUserService?.UserId ?? "System";
+                    }
                 }
             }
         }

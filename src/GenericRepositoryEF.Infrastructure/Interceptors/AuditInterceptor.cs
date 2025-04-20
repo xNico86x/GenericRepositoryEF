@@ -89,8 +89,8 @@ namespace GenericRepositoryEF.Infrastructure.Interceptors
                 auditableEntity.CreatedBy = _currentUserService?.UserId ?? "System";
             }
 
-            auditableEntity.LastModifiedAt = _currentDateTime;
-            auditableEntity.LastModifiedBy = _currentUserService?.UserId ?? "System";
+            auditableEntity.ModifiedAt = _currentDateTime;
+            auditableEntity.ModifiedBy = _currentUserService?.UserId ?? "System";
         }
 
         private void HandleSoftDelete(EntityEntry entry, ISoftDelete softDeleteEntity)
@@ -98,7 +98,11 @@ namespace GenericRepositoryEF.Infrastructure.Interceptors
             entry.State = EntityState.Modified;
             softDeleteEntity.IsDeleted = true;
             softDeleteEntity.DeletedAt = _currentDateTime;
-            softDeleteEntity.DeletedBy = _currentUserService?.UserId ?? "System";
+            // Set DeletedBy if entity implements ISoftDeleteWithUser
+            if (softDeleteEntity is ISoftDeleteWithUser softDeleteWithUser)
+            {
+                softDeleteWithUser.DeletedBy = _currentUserService?.UserId ?? "System";
+            }
         }
     }
 }
