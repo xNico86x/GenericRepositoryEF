@@ -1,0 +1,567 @@
+## Objetivo General
+
+Crear una solución .NET 8 llamada GenericRepositoryEF que implemente una arquitectura robusta y extensible para los patrones Generic Repository y Unit of Work, incluyendo características avanzadas como especificaciones, paginación, transacciones, y manejo de auditorías. La biblioteca debe ser reutilizable, independiente de modelos de datos, y compatible con múltiples proveedores de bases de datos (SQL Server, PostgreSQL, Oracle y SQLite).
+
+---
+
+## Requisitos Técnicos
+
+### 1. Patrones de Diseño Implementados:
+- **Repository Pattern** para abstraer el acceso a datos
+- **Unit of Work Pattern** para gestionar transacciones
+- **Specification Pattern** para encapsular lógica de consultas
+- **Decorator Pattern** para funcionalidades transversales (ej: caching, logging)
+- **Null Object Pattern** para manejo de entidades no encontradas
+- **Factory Pattern** para crear instancias de repositorios
+
+### 2. Métodos Extendidos en IRepository\<T, TKey>:
+```csharp
+Task<T?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default);
+Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
+Task<int> CountAsync(ISpecification<T>? specification = null, CancellationToken cancellationToken = default);
+Task<PagedResult<T>> GetPagedAsync(int pageNumber, int pageSize, ISpecification<T>? specification = null, CancellationToken cancellationToken = default);
+Task<IReadOnlyList<T>> GetBySpecificationAsync(ISpecification<T> specification, CancellationToken cancellationToken = default);
+Task<T?> GetSingleBySpecificationAsync(ISpecification<T> specification, CancellationToken cancellationToken = default);
+```
+
+### 3. Interfaces y Clases Adicionales:
+- **ISpecification\<T>**: Para definir criterios de consulta e incluir relaciones
+- **IEntity\<TKey>**: Para garantizar que todas las entidades tengan una propiedad Id
+- **ISoftDelete**: Opcional para implementar borrado lógico
+- **IAuditableEntity**: Opcional para auditorías (CreatedDate, CreatedBy, ModifiedDate, ModifiedBy)
+- **IReadOnlyRepository\<T>**: Para operaciones de solo lectura
+- **BaseSpecification\<T>**: Implementación base de ISpecification
+- **SpecificationBuilder\<T>**: Para crear especificaciones mediante fluent API
+
+### 4. Transacciones y Concurrencia:
+- Soporte para transacciones explícitas (BeginTransaction, Commit, Rollback)
+- Manejo de errores con excepciones personalizadas (EntityNotFoundException, ConcurrencyException, RepositoryException)
+- Soporte para ConcurrencyToken/RowVersion 
+- Detección y manejo de conflictos de concurrencia
+
+### 5. Cross-Cutting Concerns:
+- **Caching**: Interfaz ICachedRepository\<T> con implementación usando IMemoryCache
+- **Logging**: Inyección de ILogger en repositorios con registro detallado de operaciones
+- **Validación**: Uso de FluentValidation opcional (como referencia de paquete)
+- **Resilience**: Implementación de Polly para reintentos en operaciones de base de datos
+
+### 6. Testing Avanzado:
+- Tests unitarios con mocks para todas las clases e interfaces
+- Tests de integración con SQLite en memoria e InMemory Provider
+- Tests de rendimiento comparando distintas implementaciones
+- Coverage mínimo del 90% en repositorio y Unit of Work
+- Mocking de DbContext usando Moq o NSubstitute
+
+### 7. Documentación:
+- Comentarios XML en todas las interfaces y métodos públicos
+- Archivo README.md con ejemplos de uso y diagramas de arquitectura
+- Documento de diseño explicando decisiones arquitectónicas
+- Ejemplos de código para todos los escenarios comunes
+
+---
+
+## Estructura de la Solución
+
+```
+GenericRepositoryEF/
+├── src/
+│   ├── GenericRepositoryEF.Core/           # Interfaces y DTOs
+│   │   ├── Interfaces/
+│   │   │   ├── IRepository.cs             # Métodos CRUD + avanzados
+│   │   │   ├── IReadOnlyRepository.cs     # Operaciones de solo lectura
+│   │   │   ├── IUnitOfWork.cs             # CompleteAsync + transacciones
+│   │   │   ├── ISpecification.cs          # Criteria + Includes
+│   │   │   ├── IEntity.cs                 # Base para entidades (TKey Id)
+│   │   │   ├── ISoftDelete.cs             # Para borrado lógico
+│   │   │   └── IAuditableEntity.cs        # Para auditoría
+│   │   ├── Models/
+│   │   │   ├── PagedResult.cs             # Paginación
+│   │   │   └── OrderByDirection.cs        # Enum para ordenamiento
+│   │   ├── Specifications/                # Base specifications
+│   │   │   ├── BaseSpecification.cs       # Implementación base
+│   │   │   └── SpecificationBuilder.cs    # Builder pattern
+│   │   └── Exceptions/
+│   │       ├── EntityNotFoundException.cs  # Excepción personalizada
+│   │       ├── ConcurrencyException.cs     # Excepción concurrencia
+│   │       └── RepositoryException.cs      # Excepción base
+│   │
+│   ├── GenericRepositoryEF.Infrastructure/ # Implementaciones EF
+│   │   ├── Repositories/
+│   │   │   ├── Repository.cs              # Implementación IRepository
+│   │   │   ├── ReadOnlyRepository.cs      # Implementación IReadOnlyRepository
+│   │   │   └── CachedRepository.cs        # Decorator para caching
+│   │   ├── UnitOfWork/
+│   │   │   └── UnitOfWork.cs              # Implementación IUnitOfWork
+│   │   ├── Specifications/
+│   │   │   └── SpecificationEvaluator.cs  # Builder de queries
+│   │   └── Extensions/
+│   │       ├── QueryableExtensions.cs     # Extensiones para IQueryable
+│   │       └── PredicateBuilder.cs        # Para combinar predicados
+│   │
+│   └── GenericRepositoryEF.Extensions/     # DI, Configuration
+│       ├── ServiceCollectionExtensions.cs  # AddGenericRepositories()
+│       ├── DbContextExtensions.cs          # Para auditoría y soft delete
+│       └── ServiceConfigurationOptions.cs  # Opciones configurables
+│
+├── tests/
+│   ├── GenericRepositoryEF.UnitTests/      # Tests con mocks
+│   │   ├── Repositories/                  # Tests para repositorios
+│   │   ├── Specifications/                # Tests para specifications
+│   │   └── UnitOfWork/                    # Tests para UnitOfWork
+│   │
+│   └── GenericRepositoryEF.IntegrationTests/ # Tests con DB real
+│       ├── Setup/                         # Configuración de pruebas
+│       ├── Fixtures/                      # Test fixtures
+│       └── Repositories/                  # Tests integración
+│
+└── samples/                              # Ejemplos de uso
+    ├── SampleApi/                         # Web API de ejemplo
+    ├── SampleConsole/                     # Aplicación consola ejemplo
+    └── SampleBlazor/                      # Aplicación Blazor ejemplo
+```
+
+---
+
+## Detalles de Implementación
+
+### 1. Specification Pattern:
+
+```csharp
+public interface ISpecification<T>
+{
+    Expression<Func<T, bool>>? Criteria { get; }
+    List<Expression<Func<T, object>>> Includes { get; }
+    List<string> IncludeStrings { get; }
+    Expression<Func<T, object>>? OrderBy { get; }
+    Expression<Func<T, object>>? OrderByDescending { get; }
+    int? Take { get; }
+    int? Skip { get; }
+    bool IsPagingEnabled { get; }
+}
+
+public abstract class BaseSpecification<T> : ISpecification<T>
+{
+    public Expression<Func<T, bool>>? Criteria { get; private set; }
+    public List<Expression<Func<T, object>>> Includes { get; } = new();
+    public List<string> IncludeStrings { get; } = new();
+    public Expression<Func<T, object>>? OrderBy { get; private set; }
+    public Expression<Func<T, object>>? OrderByDescending { get; private set; }
+    public int? Take { get; private set; }
+    public int? Skip { get; private set; }
+    public bool IsPagingEnabled { get; private set; }
+
+    protected BaseSpecification() { }
+
+    protected BaseSpecification(Expression<Func<T, bool>> criteria)
+    {
+        Criteria = criteria;
+    }
+
+    protected virtual void AddInclude(Expression<Func<T, object>> includeExpression)
+    {
+        Includes.Add(includeExpression);
+    }
+
+    protected virtual void AddInclude(string includeString)
+    {
+        IncludeStrings.Add(includeString);
+    }
+
+    protected virtual void ApplyPaging(int skip, int take)
+    {
+        Skip = skip;
+        Take = take;
+        IsPagingEnabled = true;
+    }
+
+    protected virtual void ApplyOrderBy(Expression<Func<T, object>> orderByExpression)
+    {
+        OrderBy = orderByExpression;
+    }
+
+    protected virtual void ApplyOrderByDescending(Expression<Func<T, object>> orderByDescendingExpression)
+    {
+        OrderByDescending = orderByDescendingExpression;
+    }
+}
+```
+
+### 2. Manejo de Transacciones:
+
+```csharp
+public interface IUnitOfWork : IAsyncDisposable
+{
+    Task<int> SaveChangesAsync(CancellationToken ct = default);
+    IRepository<TEntity, TKey> Repository<TEntity, TKey>() 
+        where TEntity : class, IEntity<TKey> 
+        where TKey : IEquatable<TKey>;
+    IRepository<TEntity> Repository<TEntity>() 
+        where TEntity : class, IEntity<int>;
+    Task BeginTransactionAsync(CancellationToken ct = default);
+    Task CommitTransactionAsync(CancellationToken ct = default);
+    Task RollbackTransactionAsync(CancellationToken ct = default);
+}
+
+public class UnitOfWork : IUnitOfWork
+{
+    private readonly DbContext _dbContext;
+    private readonly IServiceProvider _serviceProvider;
+    private IDbContextTransaction? _transaction;
+    private bool _disposed;
+
+    public UnitOfWork(DbContext dbContext, IServiceProvider serviceProvider)
+    {
+        _dbContext = dbContext;
+        _serviceProvider = serviceProvider;
+    }
+
+    public IRepository<TEntity, TKey> Repository<TEntity, TKey>() 
+        where TEntity : class, IEntity<TKey> 
+        where TKey : IEquatable<TKey>
+    {
+        return _serviceProvider.GetRequiredService<IRepository<TEntity, TKey>>();
+    }
+
+    public IRepository<TEntity> Repository<TEntity>() 
+        where TEntity : class, IEntity<int>
+    {
+        return _serviceProvider.GetRequiredService<IRepository<TEntity>>();
+    }
+
+    public async Task<int> SaveChangesAsync(CancellationToken ct = default)
+    {
+        return await _dbContext.SaveChangesAsync(ct);
+    }
+
+    public async Task BeginTransactionAsync(CancellationToken ct = default)
+    {
+        _transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+    }
+
+    public async Task CommitTransactionAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            await _dbContext.SaveChangesAsync(ct);
+            await _transaction?.CommitAsync(ct)!;
+        }
+        catch
+        {
+            await RollbackTransactionAsync(ct);
+            throw;
+        }
+        finally
+        {
+            if (_transaction != null)
+            {
+                await _transaction.DisposeAsync();
+                _transaction = null;
+            }
+        }
+    }
+
+    public async Task RollbackTransactionAsync(CancellationToken ct = default)
+    {
+        if (_transaction != null)
+        {
+            await _transaction.RollbackAsync(ct);
+            await _transaction.DisposeAsync();
+            _transaction = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!_disposed)
+        {
+            if (_transaction != null)
+            {
+                await _transaction.DisposeAsync();
+                _transaction = null;
+            }
+            _disposed = true;
+        }
+    }
+}
+```
+
+### 3. Paginación con PagedResult<T>:
+
+```csharp
+public class PagedResult<T>
+{
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
+    public int TotalItems { get; set; }
+    public int TotalPages => (int)Math.Ceiling(TotalItems / (double)PageSize);
+    public bool HasPreviousPage => PageNumber > 1;
+    public bool HasNextPage => PageNumber < TotalPages;
+    public List<T> Items { get; set; } = new();
+
+    public PagedResult() { }
+
+    public PagedResult(List<T> items, int count, int pageNumber, int pageSize)
+    {
+        TotalItems = count;
+        PageNumber = pageNumber;
+        PageSize = pageSize;
+        Items = items;
+    }
+
+    public static PagedResult<T> Create(IEnumerable<T> source, int pageNumber, int pageSize, int totalItems)
+    {
+        return new PagedResult<T>
+        {
+            Items = source.ToList(),
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalItems = totalItems
+        };
+    }
+}
+```
+
+### 4. Interfaces para Auditoría y Soft Delete:
+
+```csharp
+public interface ISoftDelete
+{
+    bool IsDeleted { get; set; }
+    DateTime? DeletedAt { get; set; }
+    string? DeletedBy { get; set; }
+}
+
+public interface IAuditableEntity
+{
+    DateTime CreatedAt { get; set; }
+    string? CreatedBy { get; set; }
+    DateTime? LastModifiedAt { get; set; }
+    string? LastModifiedBy { get; set; }
+}
+```
+
+---
+
+## Instrucciones Adicionales
+
+### Inyección de Dependencias:
+- Usar Scoped para DbContext, UnitOfWork, y Repository<T>.
+- Proporcionar extensiones para configurar fácilmente en Startup/Program.cs:
+
+```csharp
+// En Program.cs
+services.AddDbContext<AppDbContext>(options => 
+    options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+
+services.AddGenericRepositories(options => {
+    options.UseDbContext<AppDbContext>();
+    options.EnableSoftDelete = true;
+    options.EnableAuditing = true;
+    options.EnableCaching = true;
+});
+```
+
+### Performance:
+- Usar AsNoTracking() para consultas de solo lectura
+- Utilizar IQueryable<T> dentro de repositorios para no materializar colecciones tempranamente
+- Implementar estrategias de caching para entidades frecuentemente accedidas
+- Evitar Select N+1 con Include automático vía especificaciones
+- Usar proyecciones para reducir datos transferidos
+
+### Compatibilidad:
+- Asegurar soporte para SQL Server, PostgreSQL, Oracle y SQLite
+- Proveer abstracciones para funcionalidades específicas de cada proveedor
+- Implementar patrones para manejar diferencias en SQL entre proveedores
+- Incluir migrations de ejemplo para cada proveedor soportado
+
+### Seguridad:
+- Implementar protección contra SQL Injection vía EF Core
+- Soporte para encriptación de datos sensibles
+- Implementación de auditoría completa para cambios en entidades
+- Soporte para políticas de autorización a nivel de entidad
+
+### Adaptabilidad:
+- Permitir configuración flexible vía opciones
+- Proporcionar hooks para personalizar comportamiento del repositorio
+- Soporte para extender funcionalidades mediante interfaces adicionales
+- Implementación modular que permita usar solo los componentes necesarios
+
+GenericRepositoryEF/
+├── .gitignore
+├── README.md
+├── GenericRepositoryEF.sln
+│
+├── src/
+│   ├── GenericRepositoryEF.Core/
+│   │   ├── GenericRepositoryEF.Core.csproj
+│   │   │
+│   │   ├── Interfaces/
+│   │   │   ├── IEntity.cs
+│   │   │   ├── IEntityWithKey.cs
+│   │   │   ├── IRepository.cs
+│   │   │   ├── IReadOnlyRepository.cs
+│   │   │   ├── IUnitOfWork.cs
+│   │   │   ├── ISpecification.cs
+│   │   │   ├── ISoftDelete.cs
+│   │   │   ├── IAuditableEntity.cs
+│   │   │   └── ICachedRepository.cs
+│   │   │
+│   │   ├── Models/
+│   │   │   ├── PagedResult.cs
+│   │   │   └── OrderByDirection.cs
+│   │   │
+│   │   ├── Specifications/
+│   │   │   ├── BaseSpecification.cs
+│   │   │   └── SpecificationBuilder.cs
+│   │   │
+│   │   └── Exceptions/
+│   │       ├── EntityNotFoundException.cs
+│   │       ├── ConcurrencyException.cs
+│   │       ├── RepositoryException.cs
+│   │       └── TransactionException.cs
+│   │
+│   ├── GenericRepositoryEF.Infrastructure/
+│   │   ├── GenericRepositoryEF.Infrastructure.csproj
+│   │   │
+│   │   ├── Repositories/
+│   │   │   ├── Repository.cs
+│   │   │   ├── ReadOnlyRepository.cs
+│   │   │   ├── CachedRepository.cs
+│   │   │   └── NullRepository.cs
+│   │   │
+│   │   ├── UnitOfWork/
+│   │   │   └── UnitOfWork.cs
+│   │   │
+│   │   ├── Specifications/
+│   │   │   └── SpecificationEvaluator.cs
+│   │   │
+│   │   ├── Factories/
+│   │   │   └── RepositoryFactory.cs
+│   │   │
+│   │   ├── Interceptors/
+│   │   │   ├── AuditSaveChangesInterceptor.cs
+│   │   │   └── SoftDeleteSaveChangesInterceptor.cs
+│   │   │
+│   │   └── Extensions/
+│   │       ├── QueryableExtensions.cs
+│   │       └── PredicateBuilder.cs
+│   │
+│   └── GenericRepositoryEF.Extensions/
+│       ├── GenericRepositoryEF.Extensions.csproj
+│       │
+│       ├── DependencyInjection/
+│       │   ├── ServiceCollectionExtensions.cs
+│       │   └── ServiceConfigurationOptions.cs
+│       │
+│       ├── Configuration/
+│       │   └── DbContextOptionsBuilderExtensions.cs
+│       │
+│       └── Extensions/
+│           └── DbContextExtensions.cs
+│
+├── tests/
+│   ├── GenericRepositoryEF.UnitTests/
+│   │   ├── GenericRepositoryEF.UnitTests.csproj
+│   │   │
+│   │   ├── Repositories/
+│   │   │   ├── RepositoryTests.cs
+│   │   │   ├── ReadOnlyRepositoryTests.cs
+│   │   │   ├── CachedRepositoryTests.cs
+│   │   │   └── NullRepositoryTests.cs
+│   │   │
+│   │   ├── Specifications/
+│   │   │   ├── BaseSpecificationTests.cs
+│   │   │   ├── SpecificationBuilderTests.cs
+│   │   │   └── SpecificationEvaluatorTests.cs
+│   │   │
+│   │   ├── UnitOfWork/
+│   │   │   └── UnitOfWorkTests.cs
+│   │   │
+│   │   └── Factories/
+│   │       └── RepositoryFactoryTests.cs
+│   │
+│   └── GenericRepositoryEF.IntegrationTests/
+│       ├── GenericRepositoryEF.IntegrationTests.csproj
+│       │
+│       ├── Setup/
+│       │   ├── TestDbContext.cs
+│       │   ├── TestEntity.cs
+│       │   └── TestFixture.cs
+│       │
+│       ├── Fixtures/
+│       │   ├── SqlServerFixture.cs
+│       │   ├── PostgreSqlFixture.cs
+│       │   ├── OracleFixture.cs
+│       │   └── SqliteFixture.cs
+│       │
+│       ├── Repositories/
+│       │   ├── RepositoryIntegrationTests.cs
+│       │   └── ReadOnlyRepositoryIntegrationTests.cs
+│       │
+│       ├── UnitOfWork/
+│       │   └── UnitOfWorkIntegrationTests.cs
+│       │
+│       └── Performance/
+│           └── RepositoryPerformanceTests.cs
+│
+├── samples/
+│   ├── SampleApi/
+│   │   ├── SampleApi.csproj
+│   │   │
+│   │   ├── Controllers/
+│   │   │   └── ProductsController.cs
+│   │   │
+│   │   ├── Data/
+│   │   │   ├── AppDbContext.cs
+│   │   │   └── AppDbContextFactory.cs
+│   │   │
+│   │   ├── Models/
+│   │   │   ├── Product.cs
+│   │   │   ├── Category.cs
+│   │   │   └── Supplier.cs
+│   │   │
+│   │   ├── Specifications/
+│   │   │   └── ProductSpecifications.cs
+│   │   │
+│   │   ├── Program.cs
+│   │   ├── appsettings.json
+│   │   └── appsettings.Development.json
+│   │
+│   ├── SampleConsole/
+│   │   ├── SampleConsole.csproj
+│   │   │
+│   │   ├── Data/
+│   │   │   └── ConsoleDbContext.cs
+│   │   │
+│   │   ├── Models/
+│   │   │   └── Customer.cs
+│   │   │
+│   │   ├── Program.cs
+│   │   └── appsettings.json
+│   │
+│   └── SampleBlazor/
+│       ├── SampleBlazor.csproj
+│       │
+│       ├── Data/
+│       │   └── BlazorDbContext.cs
+│       │
+│       ├── Models/
+│       │   └── TodoItem.cs
+│       │
+│       ├── Pages/
+│       │   └── TodoList.razor
+│       │
+│       ├── Services/
+│       │   └── TodoService.cs
+│       │
+│       ├── Program.cs
+│       └── appsettings.json
+│
+└── docs/
+    ├── architecture.md
+    ├── implementation-decisions.md
+    ├── usage-examples.md
+    └── diagrams/
+        ├── repository-pattern.png
+        ├── unit-of-work.png
+        └── specification-pattern.png
