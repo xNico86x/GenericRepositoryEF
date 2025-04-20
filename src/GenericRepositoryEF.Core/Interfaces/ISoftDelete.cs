@@ -16,7 +16,7 @@ namespace GenericRepositoryEF.Core.Interfaces
         /// <summary>
         /// Gets or sets the date and time when this entity was deleted.
         /// </summary>
-        DateTime? DeletedDate { get; set; }
+        DateTime? DeletedAt { get; set; }
 
         /// <summary>
         /// Gets or sets the identifier of the user who deleted this entity.

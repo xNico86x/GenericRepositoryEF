@@ -72,7 +72,7 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
             if (entity is ISoftDelete softDelete)
             {
                 softDelete.IsDeleted = true;
-                softDelete.DeletedDate = DateTime.UtcNow;
+                softDelete.DeletedAt = DateTime.UtcNow;
                 _dbContext.Entry(entity).State = EntityState.Modified;
             }
             else
@@ -106,7 +106,7 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
                 if (entity is ISoftDelete softDelete)
                 {
                     softDelete.IsDeleted = true;
-                    softDelete.DeletedDate = DateTime.UtcNow;
+                    softDelete.DeletedAt = DateTime.UtcNow;
                     _dbContext.Entry(entity).State = EntityState.Modified;
                 }
             }
@@ -155,7 +155,7 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
                 {
                     try
                     {
-                        // Handle audit properties (CreatedDate, LastModifiedDate)
+                        // Handle audit properties (CreatedAt, LastModifiedAt)
                         UpdateAuditProperties();
                         
                         return await _dbContext.SaveChangesAsync(cancellationToken);
@@ -199,16 +199,16 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
                     
                     if (entityEntry.State == EntityState.Added)
                     {
-                        auditableEntity.CreatedDate = now;
+                        auditableEntity.CreatedAt = now;
                         auditableEntity.CreatedBy = userId;
                     }
                     else
                     {
-                        auditableEntity.LastModifiedDate = now;
+                        auditableEntity.LastModifiedAt = now;
                         auditableEntity.LastModifiedBy = userId;
                         
-                        // Don't modify CreatedDate and CreatedBy
-                        entityEntry.Property("CreatedDate").IsModified = false;
+                        // Don't modify CreatedAt and CreatedBy
+                        entityEntry.Property("CreatedAt").IsModified = false;
                         entityEntry.Property("CreatedBy").IsModified = false;
                     }
                 }
