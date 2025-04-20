@@ -1,75 +1,82 @@
-using GenericRepositoryEF.Core.Models;
-using System.Linq.Expressions;
-
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Defines a repository for accessing and manipulating entities.
+    /// Interface for a repository.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
-    /// <typeparam name="TKey">The type of the entity identifier.</typeparam>
-    public interface IRepository<T, TKey> : IReadOnlyRepository<T, TKey> where T : class, IEntity<TKey> where TKey : IEquatable<TKey>
+    public interface IRepository<T> : IReadOnlyRepository<T> where T : class, IEntity
     {
         /// <summary>
-        /// Adds a new entity.
+        /// Adds an entity asynchronously.
         /// </summary>
-        /// <param name="entity">The entity to add.</param>
+        /// <param name="entity">The entity.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added entity.</returns>
         Task<T> AddAsync(T entity, CancellationToken cancellationToken = default);
-        
+
         /// <summary>
-        /// Adds a range of new entities.
+        /// Adds a range of entities asynchronously.
         /// </summary>
-        /// <param name="entities">The entities to add.</param>
+        /// <param name="entities">The entities.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
-        
+
         /// <summary>
-        /// Updates an existing entity.
+        /// Updates an entity asynchronously.
         /// </summary>
-        /// <param name="entity">The entity to update.</param>
-        void Update(T entity);
-        
-        /// <summary>
-        /// Updates a range of existing entities.
-        /// </summary>
-        /// <param name="entities">The entities to update.</param>
-        void UpdateRange(IEnumerable<T> entities);
-        
-        /// <summary>
-        /// Deletes an entity.
-        /// </summary>
-        /// <param name="entity">The entity to delete.</param>
-        void Delete(T entity);
-        
-        /// <summary>
-        /// Deletes a range of entities.
-        /// </summary>
-        /// <param name="entities">The entities to delete.</param>
-        void DeleteRange(IEnumerable<T> entities);
-        
-        /// <summary>
-        /// Deletes an entity by its identifier.
-        /// </summary>
-        /// <param name="id">The entity identifier.</param>
+        /// <param name="entity">The entity.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        Task DeleteByIdAsync(TKey id, CancellationToken cancellationToken = default);
-        
+        /// <returns>The updated entity.</returns>
+        Task<T> UpdateAsync(T entity, CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Saves changes made in this repository.
+        /// Updates a range of entities asynchronously.
         /// </summary>
+        /// <param name="entities">The entities.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The number of affected entities.</returns>
-        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task UpdateRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deletes an entity asynchronously.
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task DeleteAsync(T entity, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deletes a range of entities asynchronously.
+        /// </summary>
+        /// <param name="entities">The entities.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task DeleteRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deletes entities using a specification asynchronously.
+        /// </summary>
+        /// <param name="specification">The specification.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of entities deleted.</returns>
+        Task<int> DeleteAsync(ISpecification<T> specification, CancellationToken cancellationToken = default);
     }
-    
+
     /// <summary>
-    /// Defines a repository for accessing and manipulating entities with an integer identifier.
+    /// Interface for a repository with a key.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
-    public interface IRepository<T> : IRepository<T, int>, IReadOnlyRepository<T> where T : class, IEntity<int>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    public interface IRepository<T, TKey> : IReadOnlyRepository<T, TKey>, IRepository<T>
+        where T : class, IEntityWithKey<TKey>, IEntity
     {
+        /// <summary>
+        /// Deletes an entity by its identifier asynchronously.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>True if the entity was deleted, false otherwise.</returns>
+        Task<bool> DeleteByIdAsync(TKey id, CancellationToken cancellationToken = default);
     }
 }

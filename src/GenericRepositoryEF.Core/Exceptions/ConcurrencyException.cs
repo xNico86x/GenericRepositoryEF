@@ -1,63 +1,58 @@
 namespace GenericRepositoryEF.Core.Exceptions
 {
     /// <summary>
-    /// Represents errors that occur when a concurrency conflict is detected.
+    /// Exception thrown when a concurrency conflict occurs.
     /// </summary>
-    public class ConcurrencyException : RepositoryException
+    public class ConcurrencyException : Exception
     {
         /// <summary>
-        /// Gets the name of the entity type.
+        /// Initializes a new instance of the <see cref="ConcurrencyException"/> class.
         /// </summary>
-        public string EntityName { get; }
-
-        /// <summary>
-        /// Gets the identifier of the entity.
-        /// </summary>
-        public object? EntityId { get; }
+        public ConcurrencyException()
+            : base("A concurrency conflict occurred.")
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ConcurrencyException"/> class.
         /// </summary>
-        /// <param name="entityName">The name of the entity type.</param>
-        public ConcurrencyException(string entityName)
-            : base($"A concurrency conflict was detected for entity of type '{entityName}'.")
-        {
-            EntityName = entityName;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ConcurrencyException"/> class with a specified entity name and identifier.
-        /// </summary>
-        /// <param name="entityName">The name of the entity type.</param>
-        /// <param name="entityId">The identifier of the entity.</param>
-        public ConcurrencyException(string entityName, object entityId)
-            : base($"A concurrency conflict was detected for entity of type '{entityName}' with id '{entityId}'.")
-        {
-            EntityName = entityName;
-            EntityId = entityId;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ConcurrencyException"/> class with a specified error message.
-        /// </summary>
         /// <param name="message">The message that describes the error.</param>
-        /// <param name="entityName">The name of the entity type.</param>
-        public ConcurrencyException(string message, string entityName)
+        public ConcurrencyException(string message)
             : base(message)
         {
-            EntityName = entityName;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ConcurrencyException"/> class with a specified error message and a reference to the inner exception that is the cause of this exception.
+        /// Initializes a new instance of the <see cref="ConcurrencyException"/> class.
         /// </summary>
         /// <param name="message">The message that describes the error.</param>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
-        /// <param name="entityName">The name of the entity type.</param>
-        public ConcurrencyException(string message, Exception innerException, string entityName)
+        public ConcurrencyException(string message, Exception innerException)
             : base(message, innerException)
         {
-            EntityName = entityName;
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConcurrencyException"/> class.
+        /// </summary>
+        /// <param name="entityType">The type of entity.</param>
+        /// <param name="id">The id of the entity.</param>
+        /// <param name="innerException">The exception that is the cause of the current exception.</param>
+        public ConcurrencyException(Type entityType, object id, Exception innerException)
+            : base($"A concurrency conflict occurred while updating entity of type {entityType.Name} with id {id}.", innerException)
+        {
+            EntityType = entityType;
+            Id = id;
+        }
+
+        /// <summary>
+        /// Gets the type of entity.
+        /// </summary>
+        public Type? EntityType { get; }
+
+        /// <summary>
+        /// Gets the id of the entity.
+        /// </summary>
+        public object? Id { get; }
     }
 }

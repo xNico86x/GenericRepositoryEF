@@ -1,32 +1,33 @@
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Defines a repository with caching capabilities.
+    /// Interface for a repository that supports caching.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
-    /// <typeparam name="TKey">The type of the entity identifier.</typeparam>
-    public interface ICachedRepository<T, TKey> : IRepository<T, TKey> 
-        where T : class, IEntity<TKey> 
-        where TKey : IEquatable<TKey>
+    public interface ICachedRepository<T> : IRepository<T> where T : class, IEntity
     {
         /// <summary>
-        /// Invalidates all cached data for this repository.
+        /// Invalidates all cache entries for the entity type.
         /// </summary>
-        void InvalidateCache();
-        
-        /// <summary>
-        /// Invalidates the cached data for the specified entity.
-        /// </summary>
-        /// <param name="id">The entity identifier.</param>
-        void InvalidateCacheItem(TKey id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task InvalidateCacheAsync(CancellationToken cancellationToken = default);
     }
-    
+
     /// <summary>
-    /// Defines a repository with caching capabilities for entities with an integer identifier.
+    /// Interface for a repository that supports caching with a key.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
-    public interface ICachedRepository<T> : ICachedRepository<T, int>, IRepository<T> 
-        where T : class, IEntity<int>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    public interface ICachedRepository<T, TKey> : IRepository<T, TKey>, ICachedRepository<T>
+        where T : class, IEntityWithKey<TKey>, IEntity
     {
+        /// <summary>
+        /// Invalidates the cache entry for the entity with the specified identifier.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task InvalidateCacheForIdAsync(TKey id, CancellationToken cancellationToken = default);
     }
 }

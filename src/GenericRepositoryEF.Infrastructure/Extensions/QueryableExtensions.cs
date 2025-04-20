@@ -1,109 +1,59 @@
+using System.Linq.Expressions;
 using GenericRepositoryEF.Core.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 
 namespace GenericRepositoryEF.Infrastructure.Extensions
 {
     /// <summary>
-    /// Provides extension methods for IQueryable.
+    /// Extension methods for the <see cref="IQueryable{T}"/> interface.
     /// </summary>
     public static class QueryableExtensions
     {
         /// <summary>
-        /// Applies paging to the query.
+        /// Creates a paged result.
         /// </summary>
-        /// <typeparam name="T">The type of entity.</typeparam>
-        /// <param name="query">The query to page.</param>
+        /// <typeparam name="T">The type of elements in the query.</typeparam>
+        /// <param name="query">The query.</param>
         /// <param name="pageNumber">The page number.</param>
         /// <param name="pageSize">The page size.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A paged result.</returns>
-        public static async Task<PagedResult<T>> ToPagedResultAsync<T>(
-            this IQueryable<T> query, 
-            int pageNumber, 
-            int pageSize,
-            CancellationToken cancellationToken = default)
+        /// <returns>The paged result.</returns>
+        public static async Task<PagedResult<T>> ToPagedResultAsync<T>(this IQueryable<T> query, int pageNumber, int pageSize)
         {
-            if (pageNumber < 1)
-            {
-                pageNumber = 1;
-            }
-
-            if (pageSize < 1)
-            {
-                pageSize = 10;
-            }
-
-            var totalItems = await query.CountAsync(cancellationToken);
-            
-            var skip = (pageNumber - 1) * pageSize;
-            var items = await query.Skip(skip).Take(pageSize).ToListAsync(cancellationToken);
-
-            return new PagedResult<T>(items, totalItems, pageNumber, pageSize);
+            var totalCount = await query.CountAsync();
+            var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+            return new PagedResult<T>(items, totalCount, pageNumber, pageSize);
         }
 
         /// <summary>
-        /// Applies dynamic ordering to the query.
+        /// Orders the query using the provided expression.
         /// </summary>
-        /// <typeparam name="T">The type of entity.</typeparam>
-        /// <param name="query">The query to order.</param>
-        /// <param name="propertyName">The property name to order by.</param>
-        /// <param name="direction">The order direction.</param>
+        /// <typeparam name="T">The type of elements in the query.</typeparam>
+        /// <typeparam name="TKey">The type of the key used for ordering.</typeparam>
+        /// <param name="query">The query.</param>
+        /// <param name="keySelector">The key selector.</param>
+        /// <param name="direction">The order by direction.</param>
         /// <returns>The ordered query.</returns>
-        public static IOrderedQueryable<T> OrderByProperty<T>(
-            this IQueryable<T> query, 
-            string propertyName, 
-            OrderByDirection direction = OrderByDirection.Ascending)
+        public static IOrderedQueryable<T> OrderBy<T, TKey>(this IQueryable<T> query, Expression<Func<T, TKey>> keySelector, OrderByDirection direction)
         {
-            var entityType = typeof(T);
-            var property = entityType.GetProperty(propertyName)
-                ?? throw new ArgumentException($"Property {propertyName} not found on type {entityType.Name}");
-
-            var parameter = Expression.Parameter(entityType, "x");
-            var propertyAccess = Expression.Property(parameter, property);
-            var lambda = Expression.Lambda(propertyAccess, parameter);
-
-            var methodName = direction == OrderByDirection.Ascending ? "OrderBy" : "OrderByDescending";
-            var resultExpression = Expression.Call(
-                typeof(Queryable), 
-                methodName, 
-                new[] { entityType, property.PropertyType },
-                query.Expression, 
-                Expression.Quote(lambda));
-
-            return (IOrderedQueryable<T>)query.Provider.CreateQuery<T>(resultExpression);
+            return direction == OrderByDirection.Ascending
+                ? query.OrderBy(keySelector)
+                : query.OrderByDescending(keySelector);
         }
 
         /// <summary>
-        /// Applies a second-level ordering to an already ordered query.
+        /// Orders the query using the provided expression, after a previous ordering.
         /// </summary>
-        /// <typeparam name="T">The type of entity.</typeparam>
-        /// <param name="query">The query to order.</param>
-        /// <param name="propertyName">The property name to order by.</param>
-        /// <param name="direction">The order direction.</param>
+        /// <typeparam name="T">The type of elements in the query.</typeparam>
+        /// <typeparam name="TKey">The type of the key used for ordering.</typeparam>
+        /// <param name="query">The query.</param>
+        /// <param name="keySelector">The key selector.</param>
+        /// <param name="direction">The order by direction.</param>
         /// <returns>The ordered query.</returns>
-        public static IOrderedQueryable<T> ThenByProperty<T>(
-            this IOrderedQueryable<T> query, 
-            string propertyName, 
-            OrderByDirection direction = OrderByDirection.Ascending)
+        public static IOrderedQueryable<T> ThenBy<T, TKey>(this IOrderedQueryable<T> query, Expression<Func<T, TKey>> keySelector, OrderByDirection direction)
         {
-            var entityType = typeof(T);
-            var property = entityType.GetProperty(propertyName)
-                ?? throw new ArgumentException($"Property {propertyName} not found on type {entityType.Name}");
-
-            var parameter = Expression.Parameter(entityType, "x");
-            var propertyAccess = Expression.Property(parameter, property);
-            var lambda = Expression.Lambda(propertyAccess, parameter);
-
-            var methodName = direction == OrderByDirection.Ascending ? "ThenBy" : "ThenByDescending";
-            var resultExpression = Expression.Call(
-                typeof(Queryable), 
-                methodName, 
-                new[] { entityType, property.PropertyType },
-                query.Expression, 
-                Expression.Quote(lambda));
-
-            return (IOrderedQueryable<T>)query.Provider.CreateQuery<T>(resultExpression);
+            return direction == OrderByDirection.Ascending
+                ? query.ThenBy(keySelector)
+                : query.ThenByDescending(keySelector);
         }
     }
 }

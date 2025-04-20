@@ -1,30 +1,45 @@
 namespace GenericRepositoryEF.Core.Models
 {
     /// <summary>
-    /// Represents a paged result of entities.
+    /// Represents a paged result.
     /// </summary>
-    /// <typeparam name="T">The type of entity.</typeparam>
+    /// <typeparam name="T">The type of elements in the paged result.</typeparam>
     public class PagedResult<T>
     {
         /// <summary>
-        /// Gets the page items.
+        /// Initializes a new instance of the <see cref="PagedResult{T}"/> class.
         /// </summary>
-        public IReadOnlyList<T> Items { get; private set; }
+        /// <param name="items">The items.</param>
+        /// <param name="totalCount">The total count of items.</param>
+        /// <param name="pageNumber">The page number.</param>
+        /// <param name="pageSize">The page size.</param>
+        public PagedResult(IReadOnlyList<T> items, int totalCount, int pageNumber, int pageSize)
+        {
+            Items = items;
+            TotalCount = totalCount;
+            PageNumber = pageNumber;
+            PageSize = pageSize;
+        }
+
+        /// <summary>
+        /// Gets the items in the current page.
+        /// </summary>
+        public IReadOnlyList<T> Items { get; }
 
         /// <summary>
         /// Gets the total count of items.
         /// </summary>
-        public int TotalCount { get; private set; }
+        public int TotalCount { get; }
 
         /// <summary>
-        /// Gets the page number.
+        /// Gets the current page number.
         /// </summary>
-        public int PageNumber { get; private set; }
+        public int PageNumber { get; }
 
         /// <summary>
         /// Gets the page size.
         /// </summary>
-        public int PageSize { get; private set; }
+        public int PageSize { get; }
 
         /// <summary>
         /// Gets the total number of pages.
@@ -40,31 +55,5 @@ namespace GenericRepositoryEF.Core.Models
         /// Gets a value indicating whether there is a next page.
         /// </summary>
         public bool HasNextPage => PageNumber < TotalPages;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PagedResult{T}"/> class.
-        /// </summary>
-        /// <param name="items">The items on the current page.</param>
-        /// <param name="totalCount">The total count of items.</param>
-        /// <param name="pageNumber">The page number.</param>
-        /// <param name="pageSize">The page size.</param>
-        public PagedResult(IReadOnlyList<T> items, int totalCount, int pageNumber, int pageSize)
-        {
-            Items = items ?? throw new ArgumentNullException(nameof(items));
-            TotalCount = totalCount > 0 ? totalCount : 0;
-            PageNumber = pageNumber > 0 ? pageNumber : 1;
-            PageSize = pageSize > 0 ? pageSize : 10;
-        }
-
-        /// <summary>
-        /// Creates an empty paged result.
-        /// </summary>
-        /// <param name="pageNumber">The page number.</param>
-        /// <param name="pageSize">The page size.</param>
-        /// <returns>An empty paged result.</returns>
-        public static PagedResult<T> Empty(int pageNumber, int pageSize)
-        {
-            return new PagedResult<T>(Array.Empty<T>(), 0, pageNumber, pageSize);
-        }
     }
 }

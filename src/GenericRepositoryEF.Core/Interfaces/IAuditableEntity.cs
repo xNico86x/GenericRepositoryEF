@@ -1,28 +1,28 @@
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Defines a contract for auditable entities.
+    /// Interface for auditable entities.
     /// </summary>
     public interface IAuditableEntity
     {
         /// <summary>
-        /// Gets or sets the date and time when this entity was created.
+        /// Gets or sets the date when the entity was created.
         /// </summary>
         DateTime CreatedAt { get; set; }
 
         /// <summary>
-        /// Gets or sets the identifier of the user who created this entity.
+        /// Gets or sets the identifier of the user who created the entity.
         /// </summary>
-        string CreatedBy { get; set; }
+        string? CreatedBy { get; set; }
 
         /// <summary>
-        /// Gets or sets the date and time when this entity was last modified.
+        /// Gets or sets the date when the entity was last modified.
         /// </summary>
-        DateTime? LastModifiedAt { get; set; }
+        DateTime? ModifiedAt { get; set; }
 
         /// <summary>
-        /// Gets or sets the identifier of the user who last modified this entity.
+        /// Gets or sets the identifier of the user who last modified the entity.
         /// </summary>
-        string? LastModifiedBy { get; set; }
+        string? ModifiedBy { get; set; }
     }
 }

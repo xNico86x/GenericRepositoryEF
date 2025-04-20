@@ -1,13 +1,13 @@
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Defines an entity with a specific key type.
+    /// Interface for entities with a key.
     /// </summary>
-    /// <typeparam name="TKey">The type of the entity key.</typeparam>
-    public interface IEntityWithKey<TKey> where TKey : IEquatable<TKey>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    public interface IEntityWithKey<TKey> : IEntity
     {
         /// <summary>
-        /// Gets or sets the identifier for this entity.
+        /// Gets or sets the identifier.
         /// </summary>
         TKey Id { get; set; }
     }

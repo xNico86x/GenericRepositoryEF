@@ -3,59 +3,59 @@ using System.Linq.Expressions;
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Defines a specification for filtering entities.
+    /// Interface for a specification.
     /// </summary>
-    /// <typeparam name="T">The type of entity to which the specification applies.</typeparam>
-    public interface ISpecification<T>
+    /// <typeparam name="T">The type of entity.</typeparam>
+    public interface ISpecification<T> where T : class, IEntity
     {
         /// <summary>
-        /// Gets the filtering criteria.
+        /// Gets the criteria.
         /// </summary>
         Expression<Func<T, bool>>? Criteria { get; }
-        
+
         /// <summary>
-        /// Gets the include expressions for eager loading.
+        /// Gets the include expressions.
         /// </summary>
-        List<Expression<Func<T, object>>> Includes { get; }
-        
+        IReadOnlyList<Expression<Func<T, object>>> Includes { get; }
+
         /// <summary>
-        /// Gets the include strings for eager loading.
+        /// Gets the include strings.
         /// </summary>
-        List<string> IncludeStrings { get; }
-        
+        IReadOnlyList<string> IncludeStrings { get; }
+
         /// <summary>
-        /// Gets the expression to order by in ascending order.
+        /// Gets the order by expression.
         /// </summary>
         Expression<Func<T, object>>? OrderBy { get; }
-        
+
         /// <summary>
-        /// Gets the expression to order by in descending order.
+        /// Gets the order by descending expression.
         /// </summary>
         Expression<Func<T, object>>? OrderByDescending { get; }
-        
+
         /// <summary>
-        /// Gets the number of entities to take.
+        /// Gets the group by expression.
         /// </summary>
-        int? Take { get; }
-        
+        Expression<Func<T, object>>? GroupBy { get; }
+
         /// <summary>
-        /// Gets the number of entities to skip.
+        /// Gets a value indicating whether tracking is enabled.
+        /// </summary>
+        bool IsTrackingEnabled { get; }
+
+        /// <summary>
+        /// Gets the skip value.
         /// </summary>
         int? Skip { get; }
-        
+
+        /// <summary>
+        /// Gets the take value.
+        /// </summary>
+        int? Take { get; }
+
         /// <summary>
         /// Gets a value indicating whether paging is enabled.
         /// </summary>
         bool IsPagingEnabled { get; }
-        
-        /// <summary>
-        /// Gets the grouped include expressions for eager loading with explicit ThenInclude paths.
-        /// </summary>
-        List<(Expression<Func<T, object>> selector, string navigationPropertyPath)> GroupedIncludes { get; }
-        
-        /// <summary>
-        /// Gets a value indicating whether to use tracking or not.
-        /// </summary>
-        bool AsNoTracking { get; }
     }
 }

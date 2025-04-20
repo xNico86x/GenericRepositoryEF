@@ -1,122 +1,117 @@
-using GenericRepositoryEF.Core.Interfaces;
 using System.Linq.Expressions;
+using GenericRepositoryEF.Core.Interfaces;
 
 namespace GenericRepositoryEF.Core.Specifications
 {
     /// <summary>
-    /// Builder for creating specifications using a fluent API.
+    /// Builder for specifications.
     /// </summary>
-    /// <typeparam name="T">The type of object to which the specification applies.</typeparam>
-    public class SpecificationBuilder<T> : BaseSpecification<T>
+    /// <typeparam name="T">The type of entity.</typeparam>
+    public class SpecificationBuilder<T> : BaseSpecification<T> where T : class, IEntity
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SpecificationBuilder{T}"/> class.
         /// </summary>
-        public SpecificationBuilder() : base() { }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SpecificationBuilder{T}"/> class with a filter criteria.
-        /// </summary>
-        /// <param name="criteria">The criteria that determines if an object satisfies the specification.</param>
-        public SpecificationBuilder(Expression<Func<T, bool>> criteria) : base(criteria) { }
-
-        /// <summary>
-        /// Sets the filter criteria for the specification.
-        /// </summary>
-        /// <param name="criteria">The criteria that determines if an object satisfies the specification.</param>
-        /// <returns>The specification builder for method chaining.</returns>
-        public SpecificationBuilder<T> Where(Expression<Func<T, bool>> criteria)
+        public SpecificationBuilder()
+            : base()
         {
-            base.Criteria = criteria;
-            return this;
         }
 
         /// <summary>
-        /// Adds an include expression for eager loading.
+        /// Initializes a new instance of the <see cref="SpecificationBuilder{T}"/> class.
+        /// </summary>
+        /// <param name="criteria">The criteria.</param>
+        public SpecificationBuilder(Expression<Func<T, bool>> criteria)
+            : base(criteria)
+        {
+        }
+
+        /// <summary>
+        /// Adds an include expression.
         /// </summary>
         /// <param name="includeExpression">The include expression.</param>
-        /// <returns>The specification builder for method chaining.</returns>
+        /// <returns>The specification builder.</returns>
         public SpecificationBuilder<T> Include(Expression<Func<T, object>> includeExpression)
         {
-            base.AddInclude(includeExpression);
+            AddInclude(includeExpression);
             return this;
         }
 
         /// <summary>
-        /// Adds a string-based include statement for eager loading.
+        /// Adds an include string.
         /// </summary>
         /// <param name="includeString">The include string.</param>
-        /// <returns>The specification builder for method chaining.</returns>
+        /// <returns>The specification builder.</returns>
         public SpecificationBuilder<T> Include(string includeString)
         {
-            base.AddInclude(includeString);
-            return this;
-        }
-        
-        /// <summary>
-        /// Adds a grouped include expression for eager loading with explicit ThenInclude path.
-        /// </summary>
-        /// <param name="selector">The selector expression.</param>
-        /// <param name="navigationPropertyPath">The navigation property path for ThenInclude.</param>
-        /// <returns>The specification builder for method chaining.</returns>
-        public SpecificationBuilder<T> ThenInclude(Expression<Func<T, object>> selector, string navigationPropertyPath)
-        {
-            base.AddGroupedInclude(selector, navigationPropertyPath);
+            AddInclude(includeString);
             return this;
         }
 
         /// <summary>
-        /// Applies ordering in ascending order to the specification.
+        /// Configures the specification to apply paging.
         /// </summary>
-        /// <param name="orderByExpression">The expression to order objects by.</param>
-        /// <returns>The specification builder for method chaining.</returns>
+        /// <param name="skip">The number of entities to skip.</param>
+        /// <param name="take">The number of entities to take.</param>
+        /// <returns>The specification builder.</returns>
+        public SpecificationBuilder<T> WithPaging(int skip, int take)
+        {
+            ApplyPaging(skip, take);
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the specification for paging by page number and page size.
+        /// </summary>
+        /// <param name="pageNumber">The page number.</param>
+        /// <param name="pageSize">The page size.</param>
+        /// <returns>The specification builder.</returns>
+        public SpecificationBuilder<T> WithPage(int pageNumber, int pageSize)
+        {
+            return WithPaging((pageNumber - 1) * pageSize, pageSize);
+        }
+
+        /// <summary>
+        /// Configures the specification to apply an order by.
+        /// </summary>
+        /// <param name="orderByExpression">The order by expression.</param>
+        /// <returns>The specification builder.</returns>
         public new SpecificationBuilder<T> OrderBy(Expression<Func<T, object>> orderByExpression)
         {
-            base.ApplyOrderBy(orderByExpression);
+            ApplyOrderBy(orderByExpression);
             return this;
         }
 
         /// <summary>
-        /// Applies ordering in descending order to the specification.
+        /// Configures the specification to apply an order by descending.
         /// </summary>
-        /// <param name="orderByDescendingExpression">The expression to order objects by.</param>
-        /// <returns>The specification builder for method chaining.</returns>
+        /// <param name="orderByDescendingExpression">The order by descending expression.</param>
+        /// <returns>The specification builder.</returns>
         public new SpecificationBuilder<T> OrderByDescending(Expression<Func<T, object>> orderByDescendingExpression)
         {
-            base.ApplyOrderByDescending(orderByDescendingExpression);
+            ApplyOrderByDescending(orderByDescendingExpression);
             return this;
         }
 
         /// <summary>
-        /// Applies paging to the specification.
+        /// Configures the specification to apply a group by.
         /// </summary>
-        /// <param name="skip">The number of objects to skip.</param>
-        /// <param name="take">The maximum number of objects to return.</param>
-        /// <returns>The specification builder for method chaining.</returns>
-        public new SpecificationBuilder<T> ApplyPaging(int skip, int take)
+        /// <param name="groupByExpression">The group by expression.</param>
+        /// <returns>The specification builder.</returns>
+        public new SpecificationBuilder<T> GroupBy(Expression<Func<T, object>> groupByExpression)
         {
-            base.ApplyPaging(skip, take);
-            return this;
-        }
-        
-        /// <summary>
-        /// Configures the specification to not track changes to entities.
-        /// </summary>
-        /// <returns>The specification builder for method chaining.</returns>
-        public new SpecificationBuilder<T> AsNoTracking()
-        {
-            base.SetAsNoTracking();
+            ApplyGroupBy(groupByExpression);
             return this;
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="SpecificationBuilder{T}"/> class with the specified criteria.
+        /// Configures the specification for no tracking.
         /// </summary>
-        /// <param name="criteria">The criteria that determines if an object satisfies the specification.</param>
-        /// <returns>A new specification builder.</returns>
-        public static SpecificationBuilder<T> Create(Expression<Func<T, bool>> criteria)
+        /// <returns>The specification builder.</returns>
+        public SpecificationBuilder<T> AsNoTracking()
         {
-            return new SpecificationBuilder<T>(criteria);
+            DisableTracking();
+            return this;
         }
     }
 }

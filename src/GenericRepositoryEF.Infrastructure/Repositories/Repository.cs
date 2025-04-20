@@ -1,249 +1,218 @@
 using GenericRepositoryEF.Core.Exceptions;
 using GenericRepositoryEF.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Polly;
-using System.Data.Common;
 
 namespace GenericRepositoryEF.Infrastructure.Repositories
 {
     /// <summary>
-    /// Implementation of the <see cref="IRepository{T, TKey}"/> interface.
+    /// Implementation of a repository.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
-    /// <typeparam name="TKey">The type of the entity identifier.</typeparam>
-    /// <typeparam name="TContext">The type of the database context.</typeparam>
-    public class Repository<T, TKey, TContext> : ReadOnlyRepository<T, TKey, TContext>, IRepository<T, TKey>
-        where T : class, IEntity<TKey>
-        where TKey : IEquatable<TKey>
-        where TContext : DbContext
+    public class Repository<T> : ReadOnlyRepository<T>, IRepository<T> where T : class, IEntity
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Repository{T, TKey, TContext}"/> class.
+        /// Initializes a new instance of the <see cref="Repository{T}"/> class.
         /// </summary>
         /// <param name="dbContext">The database context.</param>
-        /// <param name="logger">The logger.</param>
-        public Repository(TContext dbContext, ILogger<Repository<T, TKey, TContext>> logger)
-            : base(dbContext, logger)
+        public Repository(DbContext dbContext)
+            : base(dbContext)
         {
         }
 
-        /// <inheritdoc />
-        public virtual async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Adds an entity asynchronously.
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The added entity.</returns>
+        public async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
         {
-            _logger.LogDebug("Adding entity of type {EntityType}", typeof(T).Name);
-            
-            await _dbSet.AddAsync(entity, cancellationToken);
-            return entity;
-        }
-
-        /// <inheritdoc />
-        public virtual async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
-        {
-            _logger.LogDebug("Adding range of entities of type {EntityType}", typeof(T).Name);
-            
-            await _dbSet.AddRangeAsync(entities, cancellationToken);
-        }
-
-        /// <inheritdoc />
-        public virtual void Update(T entity)
-        {
-            _logger.LogDebug("Updating entity of type {EntityType} with id {EntityId}", typeof(T).Name, entity.Id);
-            
-            _dbContext.Entry(entity).State = EntityState.Modified;
-        }
-
-        /// <inheritdoc />
-        public virtual void UpdateRange(IEnumerable<T> entities)
-        {
-            _logger.LogDebug("Updating range of entities of type {EntityType}", typeof(T).Name);
-            
-            foreach (var entity in entities)
-            {
-                _dbContext.Entry(entity).State = EntityState.Modified;
-            }
-        }
-
-        /// <inheritdoc />
-        public virtual void Delete(T entity)
-        {
-            _logger.LogDebug("Deleting entity of type {EntityType} with id {EntityId}", typeof(T).Name, entity.Id);
-            
-            if (entity is ISoftDelete softDelete)
-            {
-                softDelete.IsDeleted = true;
-                softDelete.DeletedAt = DateTime.UtcNow;
-                _dbContext.Entry(entity).State = EntityState.Modified;
-            }
-            else
-            {
-                _dbSet.Remove(entity);
-            }
-        }
-
-        /// <inheritdoc />
-        public virtual void DeleteRange(IEnumerable<T> entities)
-        {
-            _logger.LogDebug("Deleting range of entities of type {EntityType}", typeof(T).Name);
-            
-            var softDeleteEntities = new List<T>();
-            var hardDeleteEntities = new List<T>();
-            
-            foreach (var entity in entities)
-            {
-                if (entity is ISoftDelete)
-                {
-                    softDeleteEntities.Add(entity);
-                }
-                else
-                {
-                    hardDeleteEntities.Add(entity);
-                }
-            }
-            
-            foreach (var entity in softDeleteEntities)
-            {
-                if (entity is ISoftDelete softDelete)
-                {
-                    softDelete.IsDeleted = true;
-                    softDelete.DeletedAt = DateTime.UtcNow;
-                    _dbContext.Entry(entity).State = EntityState.Modified;
-                }
-            }
-            
-            if (hardDeleteEntities.Any())
-            {
-                _dbSet.RemoveRange(hardDeleteEntities);
-            }
-        }
-
-        /// <inheritdoc />
-        public virtual async Task DeleteByIdAsync(TKey id, CancellationToken cancellationToken = default)
-        {
-            _logger.LogDebug("Deleting entity of type {EntityType} with id {EntityId}", typeof(T).Name, id);
-            
-            var entity = await GetByIdAsync(id, cancellationToken);
-            
-            if (entity == null)
-            {
-                throw new EntityNotFoundException(typeof(T).Name, id);
-            }
-            
-            Delete(entity);
-        }
-
-        /// <inheritdoc />
-        public virtual async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            _logger.LogDebug("Saving changes for repository of type {EntityType}", typeof(T).Name);
-            
             try
             {
-                // Using Polly for retry logic on transient database errors
-                var retryPolicy = Policy
-                    .Handle<DbException>()
-                    .Or<DbUpdateException>(ex => ex.InnerException is DbException)
-                    .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromMilliseconds(100 * Math.Pow(2, retryAttempt)),
-                        (exception, timeSpan, retryCount, context) =>
-                        {
-                            _logger.LogWarning(exception, 
-                                "Error saving changes for repository of type {EntityType}. Retry attempt {RetryCount}", 
-                                typeof(T).Name, retryCount);
-                        });
-
-                return await retryPolicy.ExecuteAsync(async () =>
-                {
-                    try
-                    {
-                        // Handle audit properties (CreatedAt, LastModifiedAt)
-                        UpdateAuditProperties();
-                        
-                        return await _dbContext.SaveChangesAsync(cancellationToken);
-                    }
-                    catch (DbUpdateConcurrencyException ex)
-                    {
-                        _logger.LogError(ex, "Concurrency error saving changes for repository of type {EntityType}", typeof(T).Name);
-                        throw new ConcurrencyException($"A concurrency error occurred while saving changes for {typeof(T).Name}", typeof(T).Name);
-                    }
-                    catch (DbUpdateException ex)
-                    {
-                        _logger.LogError(ex, "Error saving changes for repository of type {EntityType}", typeof(T).Name);
-                        throw new RepositoryException($"An error occurred while saving changes for {typeof(T).Name}", ex);
-                    }
-                });
+                await DbSet.AddAsync(entity, cancellationToken);
+                return entity;
             }
-            catch (Exception ex) when (!(ex is ConcurrencyException || ex is RepositoryException))
+            catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error saving changes for repository of type {EntityType}", typeof(T).Name);
-                throw new RepositoryException($"An unexpected error occurred while saving changes for {typeof(T).Name}", ex);
+                throw new RepositoryException(typeof(T), "AddAsync", ex);
             }
         }
-        
-        /// <summary>
-        /// Updates audit properties for entities implementing IAuditableEntity.
-        /// </summary>
-        private void UpdateAuditProperties()
-        {
-            var entries = _dbContext.ChangeTracker
-                .Entries()
-                .Where(e => e.Entity is IAuditableEntity && (
-                    e.State == EntityState.Added || 
-                    e.State == EntityState.Modified));
 
-            foreach (var entityEntry in entries)
+        /// <summary>
+        /// Adds a range of entities asynchronously.
+        /// </summary>
+        /// <param name="entities">The entities.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+        {
+            try
             {
-                if (entityEntry.Entity is IAuditableEntity auditableEntity)
+                await DbSet.AddRangeAsync(entities, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException(typeof(T), "AddRangeAsync", ex);
+            }
+        }
+
+        /// <summary>
+        /// Updates an entity asynchronously.
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The updated entity.</returns>
+        public Task<T> UpdateAsync(T entity, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                DbSet.Update(entity);
+                return Task.FromResult(entity);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                if (entity is IEntityWithKey<object> entityWithKey)
                 {
-                    var now = DateTime.UtcNow;
-                    var userId = GetCurrentUserId();
-                    
-                    if (entityEntry.State == EntityState.Added)
-                    {
-                        auditableEntity.CreatedAt = now;
-                        auditableEntity.CreatedBy = userId;
-                    }
-                    else
-                    {
-                        auditableEntity.LastModifiedAt = now;
-                        auditableEntity.LastModifiedBy = userId;
-                        
-                        // Don't modify CreatedAt and CreatedBy
-                        entityEntry.Property("CreatedAt").IsModified = false;
-                        entityEntry.Property("CreatedBy").IsModified = false;
-                    }
+                    throw new ConcurrencyException(typeof(T), entityWithKey.Id, ex);
                 }
+
+                throw new RepositoryException(typeof(T), "UpdateAsync", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException(typeof(T), "UpdateAsync", ex);
             }
         }
-        
+
         /// <summary>
-        /// Gets the current user identifier.
+        /// Updates a range of entities asynchronously.
         /// </summary>
-        /// <returns>The current user identifier.</returns>
-        protected virtual string GetCurrentUserId()
+        /// <param name="entities">The entities.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public Task UpdateRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
         {
-            // In a real application, this would likely come from an IHttpContextAccessor, ClaimsPrincipal, etc.
-            // For simplicity, we're returning a placeholder value.
-            return "system";
+            try
+            {
+                DbSet.UpdateRange(entities);
+                return Task.CompletedTask;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                throw new ConcurrencyException("A concurrency conflict occurred while updating a range of entities.", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException(typeof(T), "UpdateRangeAsync", ex);
+            }
+        }
+
+        /// <summary>
+        /// Deletes an entity asynchronously.
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                DbSet.Remove(entity);
+                return Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException(typeof(T), "DeleteAsync", ex);
+            }
+        }
+
+        /// <summary>
+        /// Deletes a range of entities asynchronously.
+        /// </summary>
+        /// <param name="entities">The entities.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public Task DeleteRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                DbSet.RemoveRange(entities);
+                return Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException(typeof(T), "DeleteRangeAsync", ex);
+            }
+        }
+
+        /// <summary>
+        /// Deletes entities using a specification asynchronously.
+        /// </summary>
+        /// <param name="specification">The specification.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of entities deleted.</returns>
+        public async Task<int> DeleteAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var entities = await ListAsync(specification, cancellationToken);
+                
+                if (entities.Count == 0)
+                {
+                    return 0;
+                }
+
+                DbSet.RemoveRange(entities);
+                return entities.Count;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException(typeof(T), "DeleteAsync with specification", ex);
+            }
         }
     }
 
     /// <summary>
-    /// Implementation of the <see cref="IRepository{T}"/> interface.
+    /// Implementation of a repository with a key.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
-    /// <typeparam name="TContext">The type of the database context.</typeparam>
-    public class Repository<T, TContext> : Repository<T, int, TContext>, IRepository<T>
-        where T : class, IEntity<int>
-        where TContext : DbContext
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    public class Repository<T, TKey> : Repository<T>, IRepository<T, TKey>
+        where T : class, IEntityWithKey<TKey>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Repository{T, TContext}"/> class.
+        /// Initializes a new instance of the <see cref="Repository{T, TKey}"/> class.
         /// </summary>
         /// <param name="dbContext">The database context.</param>
-        /// <param name="logger">The logger.</param>
-        public Repository(TContext dbContext, ILogger<Repository<T, int, TContext>> logger)
-            : base(dbContext, logger)
+        public Repository(DbContext dbContext)
+            : base(dbContext)
         {
+        }
+
+        /// <summary>
+        /// Deletes an entity by its identifier asynchronously.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>True if the entity was deleted, false otherwise.</returns>
+        public async Task<bool> DeleteByIdAsync(TKey id, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var entity = await GetByIdAsync(id, cancellationToken);
+                
+                if (entity == null)
+                {
+                    return false;
+                }
+
+                await DeleteAsync(entity, cancellationToken);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException(typeof(T), $"DeleteByIdAsync with id {id}", ex);
+            }
         }
     }
 }
