@@ -133,12 +133,15 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
         /// <inheritdoc />
         public async Task<IReadOnlyList<T>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            return await _cache.GetOrCreateAsync(_allEntitiesKey, async entry => 
+            var cachedResult = await _cache.GetOrCreateAsync(_allEntitiesKey, async entry => 
             {
                 entry.SetOptions(_cacheOptions);
                 _logger.LogDebug("Cache miss for all entities of type {EntityType}", typeof(T).Name);
-                return await _repository.GetAllAsync(cancellationToken);
+                var result = await _repository.GetAllAsync(cancellationToken);
+                return result ?? new List<T>().AsReadOnly(); // Garantizamos que nunca retornamos null
             });
+            
+            return cachedResult ?? new List<T>().AsReadOnly();
         }
 
         /// <inheritdoc />

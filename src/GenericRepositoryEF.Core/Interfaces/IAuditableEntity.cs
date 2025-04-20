@@ -8,7 +8,7 @@ namespace GenericRepositoryEF.Core.Interfaces
         /// <summary>
         /// Gets or sets the date and time when this entity was created.
         /// </summary>
-        DateTime CreatedDate { get; set; }
+        DateTime CreatedAt { get; set; }
 
         /// <summary>
         /// Gets or sets the identifier of the user who created this entity.
@@ -18,7 +18,7 @@ namespace GenericRepositoryEF.Core.Interfaces
         /// <summary>
         /// Gets or sets the date and time when this entity was last modified.
         /// </summary>
-        DateTime? LastModifiedDate { get; set; }
+        DateTime? LastModifiedAt { get; set; }
 
         /// <summary>
         /// Gets or sets the identifier of the user who last modified this entity.

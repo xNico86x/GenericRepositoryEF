@@ -48,7 +48,7 @@ namespace GenericRepositoryEF.Extensions
                 if (typeof(IAuditableEntity).IsAssignableFrom(entityType.ClrType))
                 {
                     modelBuilder.Entity(entityType.ClrType)
-                        .Property(nameof(IAuditableEntity.CreatedDate))
+                        .Property(nameof(IAuditableEntity.CreatedAt))
                         .IsRequired();
 
                     modelBuilder.Entity(entityType.ClrType)
@@ -57,7 +57,7 @@ namespace GenericRepositoryEF.Extensions
                         .HasMaxLength(256);
 
                     modelBuilder.Entity(entityType.ClrType)
-                        .Property(nameof(IAuditableEntity.LastModifiedDate))
+                        .Property(nameof(IAuditableEntity.LastModifiedAt))
                         .IsRequired(false);
 
                     modelBuilder.Entity(entityType.ClrType)
@@ -75,7 +75,7 @@ namespace GenericRepositoryEF.Extensions
                         .HasDefaultValue(false);
 
                     modelBuilder.Entity(entityType.ClrType)
-                        .Property(nameof(ISoftDelete.DeletedDate))
+                        .Property(nameof(ISoftDelete.DeletedAt))
                         .IsRequired(false);
 
                     modelBuilder.Entity(entityType.ClrType)
@@ -109,16 +109,16 @@ namespace GenericRepositoryEF.Extensions
                     
                     if (entityEntry.State == EntityState.Added)
                     {
-                        auditableEntity.CreatedDate = now;
+                        auditableEntity.CreatedAt = now;
                         auditableEntity.CreatedBy = userId;
                     }
                     else
                     {
-                        auditableEntity.LastModifiedDate = now;
+                        auditableEntity.LastModifiedAt = now;
                         auditableEntity.LastModifiedBy = userId;
                         
-                        // Don't modify CreatedDate and CreatedBy
-                        entityEntry.Property(nameof(IAuditableEntity.CreatedDate)).IsModified = false;
+                        // Don't modify CreatedAt and CreatedBy
+                        entityEntry.Property(nameof(IAuditableEntity.CreatedAt)).IsModified = false;
                         entityEntry.Property(nameof(IAuditableEntity.CreatedBy)).IsModified = false;
                     }
                 }
