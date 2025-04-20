@@ -1,54 +1,66 @@
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Defines a unit of work for managing transactions and repositories.
+    /// Defines a unit of work for coordinating multiple operations.
     /// </summary>
-    public interface IUnitOfWork : IAsyncDisposable
+    public interface IUnitOfWork
     {
-        /// <summary>
-        /// Saves all changes made through the repositories.
-        /// </summary>
-        /// <param name="ct">The cancellation token.</param>
-        /// <returns>The number of affected entities.</returns>
-        Task<int> SaveChangesAsync(CancellationToken ct = default);
-        
         /// <summary>
         /// Gets a repository for the specified entity type.
         /// </summary>
-        /// <typeparam name="TEntity">The type of entity.</typeparam>
-        /// <typeparam name="TKey">The type of the entity identifier.</typeparam>
-        /// <returns>A repository for the specified entity type.</returns>
-        IRepository<TEntity, TKey> Repository<TEntity, TKey>() 
-            where TEntity : class, IEntity<TKey> 
-            where TKey : IEquatable<TKey>;
-            
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <returns>The repository.</returns>
+        IRepository<T> Repository<T>() where T : class, IEntity;
+
         /// <summary>
-        /// Gets a repository for the specified entity type with an integer identifier.
+        /// Gets a repository for the specified entity and key types.
         /// </summary>
-        /// <typeparam name="TEntity">The type of entity.</typeparam>
-        /// <returns>A repository for the specified entity type.</returns>
-        IRepository<TEntity> Repository<TEntity>() 
-            where TEntity : class, IEntity<int>;
-            
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <typeparam name="TKey">The type of the entity identifier.</typeparam>
+        /// <returns>The repository.</returns>
+        IRepository<T, TKey> Repository<T, TKey>() where T : class, IEntity<TKey> where TKey : IEquatable<TKey>;
+
+        /// <summary>
+        /// Gets a read-only repository for the specified entity type.
+        /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <returns>The read-only repository.</returns>
+        IReadOnlyRepository<T> ReadOnlyRepository<T>() where T : class, IEntity;
+
+        /// <summary>
+        /// Gets a read-only repository for the specified entity and key types.
+        /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <typeparam name="TKey">The type of the entity identifier.</typeparam>
+        /// <returns>The read-only repository.</returns>
+        IReadOnlyRepository<T, TKey> ReadOnlyRepository<T, TKey>() where T : class, IEntity<TKey> where TKey : IEquatable<TKey>;
+
+        /// <summary>
+        /// Saves all changes made in this unit of work.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of affected entities.</returns>
+        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Begins a transaction.
         /// </summary>
-        /// <param name="ct">The cancellation token.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        Task BeginTransactionAsync(CancellationToken ct = default);
-        
+        Task BeginTransactionAsync(CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Commits the current transaction.
+        /// Commits the transaction.
         /// </summary>
-        /// <param name="ct">The cancellation token.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        Task CommitTransactionAsync(CancellationToken ct = default);
-        
+        Task CommitTransactionAsync(CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Rolls back the current transaction.
+        /// Rolls back the transaction.
         /// </summary>
-        /// <param name="ct">The cancellation token.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        Task RollbackTransactionAsync(CancellationToken ct = default);
+        Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
     }
 }

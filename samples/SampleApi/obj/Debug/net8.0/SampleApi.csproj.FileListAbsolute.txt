@@ -1,0 +1,8 @@
+/home/runner/workspace/samples/SampleApi/obj/Debug/net8.0/SampleApi.csproj.AssemblyReference.cache
+/home/runner/workspace/samples/SampleApi/obj/Debug/net8.0/SampleApi.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/workspace/samples/SampleApi/obj/Debug/net8.0/SampleApi.AssemblyInfoInputs.cache
+/home/runner/workspace/samples/SampleApi/obj/Debug/net8.0/SampleApi.AssemblyInfo.cs
+/home/runner/workspace/samples/SampleApi/obj/Debug/net8.0/SampleApi.csproj.CoreCompileInputs.cache
+/home/runner/workspace/samples/SampleApi/obj/Debug/net8.0/SampleApi.MvcApplicationPartsAssemblyInfo.cs
+/home/runner/workspace/samples/SampleApi/obj/Debug/net8.0/SampleApi.MvcApplicationPartsAssemblyInfo.cache
+/home/runner/workspace/samples/SampleApi/obj/Debug/net8.0/SampleApi.sourcelink.json
