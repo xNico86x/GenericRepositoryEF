@@ -1,7 +1,7 @@
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Service to get the current user information.
+    /// Defines a service for accessing information about the current user.
     /// </summary>
     public interface ICurrentUserService
     {
@@ -11,8 +11,8 @@ namespace GenericRepositoryEF.Core.Interfaces
         string? UserId { get; }
 
         /// <summary>
-        /// Gets a value indicating whether the current user is authenticated.
+        /// Gets the current user name.
         /// </summary>
-        bool IsAuthenticated { get; }
+        string? UserName { get; }
     }
 }

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GenericRepositoryEF.Extensions")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4b890bff6de37bbca4491991f290a82d8336f806")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fb3ba27eda07436b2e0534a6f65229d619308268")]
 [assembly: System.Reflection.AssemblyProductAttribute("GenericRepositoryEF.Extensions")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GenericRepositoryEF.Extensions")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

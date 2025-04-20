@@ -1,0 +1,6 @@
+/home/runner/workspace/samples/SampleConsole/obj/Debug/net8.0/SampleConsole.csproj.AssemblyReference.cache
+/home/runner/workspace/samples/SampleConsole/obj/Debug/net8.0/SampleConsole.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/workspace/samples/SampleConsole/obj/Debug/net8.0/SampleConsole.AssemblyInfoInputs.cache
+/home/runner/workspace/samples/SampleConsole/obj/Debug/net8.0/SampleConsole.AssemblyInfo.cs
+/home/runner/workspace/samples/SampleConsole/obj/Debug/net8.0/SampleConsole.csproj.CoreCompileInputs.cache
+/home/runner/workspace/samples/SampleConsole/obj/Debug/net8.0/SampleConsole.sourcelink.json

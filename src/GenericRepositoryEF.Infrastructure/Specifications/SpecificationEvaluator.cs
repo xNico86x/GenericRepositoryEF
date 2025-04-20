@@ -1,26 +1,26 @@
 using GenericRepositoryEF.Core.Interfaces;
+using GenericRepositoryEF.Core.Specifications;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Linq.Expressions;
 
 namespace GenericRepositoryEF.Infrastructure.Specifications
 {
     /// <summary>
-    /// Evaluates specifications by applying them to IQueryable.
+    /// Evaluates specifications to build Entity Framework queries.
     /// </summary>
-    public class SpecificationEvaluator<T> where T : class
+    public class SpecificationEvaluator : ISpecificationEvaluator
     {
         /// <summary>
-        /// Gets the query with the specification applied.
+        /// Gets the query that represents the specification.
         /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
         /// <param name="inputQuery">The input query.</param>
         /// <param name="specification">The specification to apply.</param>
-        /// <returns>The query with the specification applied.</returns>
-        public static IQueryable<T> GetQuery(IQueryable<T> inputQuery, ISpecification<T> specification)
+        /// <returns>The resulting query.</returns>
+        public IQueryable<T> GetQuery<T>(IQueryable<T> inputQuery, ISpecification<T> specification) where T : class
         {
             var query = inputQuery;
 
-            // Apply tracking options
+            // Apply AsNoTracking if specified
             if (specification.AsNoTracking)
             {
                 query = query.AsNoTracking();
@@ -32,22 +32,23 @@ namespace GenericRepositoryEF.Infrastructure.Specifications
                 query = query.Where(specification.Criteria);
             }
 
-            // Apply includes
-            query = specification.Includes.Aggregate(query,
-                (current, include) => current.Include(include));
+            // Include each simple property
+            foreach (var include in specification.Includes)
+            {
+                query = query.Include(include);
+            }
 
-            // Apply string-based include statements
-            query = specification.IncludeStrings.Aggregate(query,
-                (current, include) => current.Include(include));
-                
-            // Apply grouped includes (ThenInclude) 
-            // Since we can't directly use ThenInclude with string paths, we'll use a simpler approach
-            // for string-based navigation paths
+            // Include each string-based path
+            foreach (var includeString in specification.IncludeStrings)
+            {
+                query = query.Include(includeString);
+            }
+
+            // Include each complex nested property using grouped includes
             foreach (var (selector, navigationPropertyPath) in specification.GroupedIncludes)
             {
-                // Create a combined path string instead of using ThenInclude
-                var fullPath = $"{GetPropertyName(selector)}.{navigationPropertyPath}";
-                query = query.Include(fullPath);
+                query = query.Include(selector)
+                             .ThenInclude(navigationPropertyPath);
             }
 
             // Apply ordering
@@ -63,43 +64,11 @@ namespace GenericRepositoryEF.Infrastructure.Specifications
             // Apply paging
             if (specification.IsPagingEnabled)
             {
-                query = query.Skip(specification.Skip.GetValueOrDefault())
-                             .Take(specification.Take.GetValueOrDefault());
+                query = query.Skip(specification.Skip!.Value)
+                             .Take(specification.Take!.Value);
             }
 
             return query;
-        }
-        
-        /// <summary>
-        /// Extracts the property name from an expression.
-        /// </summary>
-        /// <param name="expression">The expression to extract the property name from.</param>
-        /// <returns>The extracted property name.</returns>
-        private static string GetPropertyName(Expression<Func<T, object>> expression)
-        {
-            if (expression == null)
-                return string.Empty;
-            
-            // Handle different expression types to extract the property name
-            if (expression.Body is MemberExpression memberExpression)
-            {
-                return memberExpression.Member.Name;
-            }
-            else if (expression.Body is UnaryExpression unaryExpression && 
-                    unaryExpression.Operand is MemberExpression memberExp)
-            {
-                return memberExp.Member.Name;
-            }
-            
-            // For more complex expressions, try to extract from the expression body string
-            var bodyString = expression.Body.ToString();
-            if (bodyString.Contains('.'))
-            {
-                // Simple but effective way to handle basic cases - take the part after the last dot
-                return bodyString.Split('.').Last().TrimEnd(')');
-            }
-            
-            return string.Empty;
         }
     }
 }

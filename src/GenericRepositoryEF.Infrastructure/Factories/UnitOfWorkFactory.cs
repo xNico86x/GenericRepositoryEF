@@ -1,44 +1,32 @@
 using GenericRepositoryEF.Core.Interfaces;
-using GenericRepositoryEF.Infrastructure.UnitOfWork;
+using GenericRepositoryEF.Infrastructure.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GenericRepositoryEF.Infrastructure.Factories
 {
     /// <summary>
-    /// Factory for creating unit of work instances.
+    /// Factory for creating units of work.
     /// </summary>
-    public class UnitOfWorkFactory
+    public class UnitOfWorkFactory : IUnitOfWorkFactory
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IRepositoryFactory _repositoryFactory;
+        private readonly DbContext _dbContext;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UnitOfWorkFactory"/> class.
         /// </summary>
-        /// <param name="serviceProvider">The service provider.</param>
-        public UnitOfWorkFactory(IServiceProvider serviceProvider)
+        /// <param name="repositoryFactory">The repository factory.</param>
+        /// <param name="dbContext">The database context.</param>
+        public UnitOfWorkFactory(IRepositoryFactory repositoryFactory, DbContext dbContext)
         {
-            _serviceProvider = serviceProvider;
+            _repositoryFactory = repositoryFactory ?? throw new ArgumentNullException(nameof(repositoryFactory));
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
-        /// <summary>
-        /// Creates a unit of work for the specified context type.
-        /// </summary>
-        /// <typeparam name="TContext">The context type.</typeparam>
-        /// <returns>A unit of work.</returns>
-        public IUnitOfWork CreateUnitOfWork<TContext>() where TContext : DbContext
-        {
-            var context = _serviceProvider.GetRequiredService<TContext>();
-            return new UnitOfWork<TContext>(context, _serviceProvider);
-        }
-
-        /// <summary>
-        /// Creates a unit of work for the default context.
-        /// </summary>
-        /// <returns>A unit of work.</returns>
+        /// <inheritdoc/>
         public IUnitOfWork CreateUnitOfWork()
         {
-            return _serviceProvider.GetRequiredService<IUnitOfWork>();
+            return new UnitOfWork(_dbContext, _repositoryFactory);
         }
     }
 }
