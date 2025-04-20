@@ -9,30 +9,32 @@ namespace GenericRepositoryEF.Infrastructure.Specifications
     public class SpecificationEvaluator : ISpecificationEvaluator
     {
         /// <summary>
-        /// Creates a query using the specification.
+        /// Gets a typed specification evaluator.
         /// </summary>
         /// <typeparam name="T">The type of entity.</typeparam>
-        /// <param name="query">The input query.</param>
-        /// <param name="specification">The specification.</param>
-        /// <returns>The query result.</returns>
-        public IQueryable<T> GetQuery<T>(IQueryable<T> query, ISpecification<T> specification) where T : class, IEntity
+        /// <returns>The specification evaluator.</returns>
+        public ISpecificationEvaluator<T> For<T>() where T : class, IEntity
         {
-            // Modify the query by applying the specification
-            query = ApplySpecification(query, specification);
-
-            // Return the modified query
-            return query;
+            return new SpecificationEvaluator<T>();
         }
+    }
 
+    /// <summary>
+    /// Implementation of a typed specification evaluator.
+    /// </summary>
+    /// <typeparam name="T">The type of entity.</typeparam>
+    public class SpecificationEvaluator<T> : ISpecificationEvaluator<T> where T : class, IEntity
+    {
         /// <summary>
-        /// Applies a specification to a query.
+        /// Gets a query with a specification applied.
         /// </summary>
-        /// <typeparam name="T">The type of entity.</typeparam>
-        /// <param name="query">The input query.</param>
+        /// <param name="inputQuery">The input query.</param>
         /// <param name="specification">The specification.</param>
-        /// <returns>The modified query.</returns>
-        protected virtual IQueryable<T> ApplySpecification<T>(IQueryable<T> query, ISpecification<T> specification) where T : class, IEntity
+        /// <returns>The query with the specification applied.</returns>
+        public IQueryable<T> GetQuery(IQueryable<T> inputQuery, ISpecification<T> specification)
         {
+            var query = inputQuery;
+
             // Apply tracking
             if (!specification.IsTrackingEnabled)
             {

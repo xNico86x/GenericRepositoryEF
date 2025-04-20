@@ -1,5 +1,7 @@
+using GenericRepositoryEF.Core.Extensions;
 using GenericRepositoryEF.Core.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Linq.Expressions;
 
 namespace GenericRepositoryEF.Core.Specifications
 {

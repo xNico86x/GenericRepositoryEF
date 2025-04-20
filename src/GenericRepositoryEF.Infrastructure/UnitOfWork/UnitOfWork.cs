@@ -1,8 +1,10 @@
 using GenericRepositoryEF.Core.Interfaces;
+using GenericRepositoryEF.Infrastructure.Extensions;
 using GenericRepositoryEF.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using System.Data;
 
@@ -88,10 +90,11 @@ namespace GenericRepositoryEF.Infrastructure.UnitOfWork
                     throw new InvalidOperationException("Service provider is required for cached repositories.");
                 }
 
-                var cache = _serviceProvider.GetRequiredService<IDistributedCache>();
-                var dateTime = _serviceProvider.GetRequiredService<IDateTime>();
+                var memoryCache = _serviceProvider.GetService<IMemoryCache>();
+                var distributedCache = _serviceProvider.GetService<IDistributedCache>();
+                var repository = new Repository<T>(_context, _specificationEvaluator);
 
-                _cachedRepositories[type] = new CachedRepository<T>(_context, _specificationEvaluator, cache, dateTime);
+                _cachedRepositories[type] = new CachedRepository<T>(repository, memoryCache, distributedCache);
             }
 
             return (ICachedRepository<T>)_cachedRepositories[type];
@@ -104,7 +107,9 @@ namespace GenericRepositoryEF.Infrastructure.UnitOfWork
         public IDbTransaction BeginTransaction()
         {
             _transaction = _context.Database.BeginTransaction();
-            return _transaction.GetDbTransaction();
+            // Get the underlying transaction from the DbContext transaction
+            var dbTransaction = _transaction.GetDbTransaction();
+            return dbTransaction;
         }
 
         /// <summary>
@@ -114,8 +119,9 @@ namespace GenericRepositoryEF.Infrastructure.UnitOfWork
         /// <returns>A transaction.</returns>
         public IDbTransaction BeginTransaction(IsolationLevel isolationLevel)
         {
-            _transaction = _context.Database.BeginTransaction(isolationLevel);
-            return _transaction.GetDbTransaction();
+            _transaction = _context.Database.BeginTransaction();
+            var dbTransaction = _transaction.GetDbTransaction();
+            return dbTransaction;
         }
 
         /// <summary>
@@ -126,7 +132,8 @@ namespace GenericRepositoryEF.Infrastructure.UnitOfWork
         public async Task<IDbTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
             _transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            return _transaction.GetDbTransaction();
+            var dbTransaction = _transaction.GetDbTransaction();
+            return dbTransaction;
         }
 
         /// <summary>
@@ -137,8 +144,9 @@ namespace GenericRepositoryEF.Infrastructure.UnitOfWork
         /// <returns>A transaction.</returns>
         public async Task<IDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
         {
-            _transaction = await _context.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
-            return _transaction.GetDbTransaction();
+            _transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            var dbTransaction = _transaction.GetDbTransaction();
+            return dbTransaction;
         }
 
         /// <summary>

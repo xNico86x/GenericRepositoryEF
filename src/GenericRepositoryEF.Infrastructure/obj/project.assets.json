@@ -574,7 +574,8 @@
     "net8.0": [
       "GenericRepositoryEF.Core >= 1.0.0",
       "Microsoft.EntityFrameworkCore >= 8.0.0",
-      "Microsoft.Extensions.Caching.Abstractions >= 8.0.0"
+      "Microsoft.Extensions.Caching.Abstractions >= 8.0.0",
+      "Microsoft.Extensions.DependencyInjection.Abstractions >= 8.0.0"
     ]
   },
   "packageFolders": {
@@ -628,6 +629,10 @@
             "version": "[8.0.0, )"
           },
           "Microsoft.Extensions.Caching.Abstractions": {
+            "target": "Package",
+            "version": "[8.0.0, )"
+          },
+          "Microsoft.Extensions.DependencyInjection.Abstractions": {
             "target": "Package",
             "version": "[8.0.0, )"
           }

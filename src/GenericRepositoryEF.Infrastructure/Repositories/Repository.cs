@@ -34,15 +34,9 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
         /// Adds a collection of entities.
         /// </summary>
         /// <param name="entities">The entities to add.</param>
-        /// <returns>The added entities.</returns>
-        public virtual IEnumerable<T> AddRange(IEnumerable<T> entities)
+        public virtual void AddRange(IEnumerable<T> entities)
         {
-            var addedEntities = new List<T>();
-            foreach (var entity in entities)
-            {
-                addedEntities.Add(Add(entity));
-            }
-            return addedEntities;
+            DbSet.AddRange(entities);
         }
 
         /// <summary>
@@ -62,15 +56,10 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
         /// </summary>
         /// <param name="entities">The entities to add.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The added entities.</returns>
-        public virtual async Task<IEnumerable<T>> AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public virtual async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
         {
-            var addedEntities = new List<T>();
-            foreach (var entity in entities)
-            {
-                addedEntities.Add(await AddAsync(entity, cancellationToken));
-            }
-            return addedEntities;
+            await DbSet.AddRangeAsync(entities, cancellationToken);
         }
 
         /// <summary>
@@ -89,15 +78,12 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
         /// Updates a collection of entities.
         /// </summary>
         /// <param name="entities">The entities to update.</param>
-        /// <returns>The updated entities.</returns>
-        public virtual IEnumerable<T> UpdateRange(IEnumerable<T> entities)
+        public virtual void UpdateRange(IEnumerable<T> entities)
         {
-            var updatedEntities = new List<T>();
             foreach (var entity in entities)
             {
-                updatedEntities.Add(Update(entity));
+                Update(entity);
             }
-            return updatedEntities;
         }
 
         /// <summary>
