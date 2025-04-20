@@ -1,58 +1,96 @@
-using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
 
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Interface for a unit of work.
+    /// Interface for the unit of work pattern.
     /// </summary>
     public interface IUnitOfWork : IDisposable
     {
         /// <summary>
-        /// Saves changes to the database.
+        /// Gets a repository for the specified entity type.
         /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The number of affected records.</returns>
-        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <returns>A repository for the entity type.</returns>
+        IRepository<T> Repository<T>() where T : class, IEntity;
+
+        /// <summary>
+        /// Gets a read-only repository for the specified entity type.
+        /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <returns>A read-only repository for the entity type.</returns>
+        IReadOnlyRepository<T> ReadOnlyRepository<T>() where T : class, IEntity;
+
+        /// <summary>
+        /// Gets a cached repository for the specified entity type.
+        /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <returns>A cached repository for the entity type.</returns>
+        ICachedRepository<T> CachedRepository<T>() where T : class, IEntity;
 
         /// <summary>
         /// Begins a transaction.
         /// </summary>
+        /// <returns>A transaction.</returns>
+        IDbTransaction BeginTransaction();
+
+        /// <summary>
+        /// Begins a transaction with the specified isolation level.
+        /// </summary>
+        /// <param name="isolationLevel">The isolation level.</param>
+        /// <returns>A transaction.</returns>
+        IDbTransaction BeginTransaction(IsolationLevel isolationLevel);
+
+        /// <summary>
+        /// Begins a transaction asynchronously.
+        /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The database transaction.</returns>
-        Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+        /// <returns>A transaction.</returns>
+        Task<IDbTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Gets a repository for an entity.
+        /// Begins a transaction with the specified isolation level asynchronously.
         /// </summary>
-        /// <typeparam name="T">The type of entity.</typeparam>
-        /// <returns>The repository.</returns>
-        IRepository<T> Repository<T>() where T : class, IEntity;
+        /// <param name="isolationLevel">The isolation level.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A transaction.</returns>
+        Task<IDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Gets a repository for an entity with a key.
+        /// Commits the transaction.
         /// </summary>
-        /// <typeparam name="T">The type of entity.</typeparam>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <returns>The repository.</returns>
-        IRepository<T, TKey> Repository<T, TKey>() 
-            where T : class, IEntityWithKey<TKey>, IEntity 
-            where TKey : IEquatable<TKey>;
+        void CommitTransaction();
 
         /// <summary>
-        /// Gets a read-only repository for an entity.
+        /// Rolls back the transaction.
         /// </summary>
-        /// <typeparam name="T">The type of entity.</typeparam>
-        /// <returns>The repository.</returns>
-        IReadOnlyRepository<T> ReadOnlyRepository<T>() where T : class, IEntity;
+        void RollbackTransaction();
 
         /// <summary>
-        /// Gets a read-only repository for an entity with a key.
+        /// Commits the transaction asynchronously.
         /// </summary>
-        /// <typeparam name="T">The type of entity.</typeparam>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <returns>The repository.</returns>
-        IReadOnlyRepository<T, TKey> ReadOnlyRepository<T, TKey>() 
-            where T : class, IEntityWithKey<TKey>, IEntity 
-            where TKey : IEquatable<TKey>;
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task CommitTransactionAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Rolls back the transaction asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Saves all changes made in this context to the database.
+        /// </summary>
+        /// <returns>The number of affected entities.</returns>
+        int SaveChanges();
+
+        /// <summary>
+        /// Saves all changes made in this context to the database asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of affected entities.</returns>
+        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

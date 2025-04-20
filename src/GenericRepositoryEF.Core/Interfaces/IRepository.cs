@@ -1,3 +1,5 @@
+using GenericRepositoryEF.Core.Models;
+
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
@@ -7,63 +9,84 @@ namespace GenericRepositoryEF.Core.Interfaces
     public interface IRepository<T> : IReadOnlyRepository<T> where T : class, IEntity
     {
         /// <summary>
-        /// Adds an entity to the repository.
+        /// Adds a new entity.
+        /// </summary>
+        /// <param name="entity">The entity to add.</param>
+        /// <returns>The added entity.</returns>
+        T Add(T entity);
+
+        /// <summary>
+        /// Adds a collection of entities.
+        /// </summary>
+        /// <param name="entities">The entities to add.</param>
+        /// <returns>The added entities.</returns>
+        IEnumerable<T> AddRange(IEnumerable<T> entities);
+
+        /// <summary>
+        /// Adds a new entity.
         /// </summary>
         /// <param name="entity">The entity to add.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
+        /// <returns>The added entity.</returns>
         Task<T> AddAsync(T entity, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Adds a range of entities to the repository.
+        /// Adds a collection of entities.
         /// </summary>
         /// <param name="entities">The entities to add.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
+        /// <returns>The added entities.</returns>
+        Task<IEnumerable<T>> AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Updates an entity in the repository.
+        /// Updates an entity.
         /// </summary>
         /// <param name="entity">The entity to update.</param>
         /// <returns>The updated entity.</returns>
         T Update(T entity);
 
         /// <summary>
-        /// Updates a range of entities in the repository.
+        /// Updates a collection of entities.
         /// </summary>
         /// <param name="entities">The entities to update.</param>
-        void UpdateRange(IEnumerable<T> entities);
+        /// <returns>The updated entities.</returns>
+        IEnumerable<T> UpdateRange(IEnumerable<T> entities);
 
         /// <summary>
-        /// Deletes an entity from the repository.
+        /// Deletes an entity.
         /// </summary>
         /// <param name="entity">The entity to delete.</param>
-        /// <returns>The deleted entity.</returns>
-        T Delete(T entity);
+        void Delete(T entity);
 
         /// <summary>
-        /// Deletes a range of entities from the repository.
+        /// Deletes an entity by ID.
+        /// </summary>
+        /// <param name="id">The ID of the entity.</param>
+        void Delete(object id);
+
+        /// <summary>
+        /// Deletes a collection of entities.
         /// </summary>
         /// <param name="entities">The entities to delete.</param>
         void DeleteRange(IEnumerable<T> entities);
-    }
 
-    /// <summary>
-    /// Interface for a repository with a key.
-    /// </summary>
-    /// <typeparam name="T">The type of entity.</typeparam>
-    /// <typeparam name="TKey">The type of the key.</typeparam>
-    public interface IRepository<T, TKey> : IRepository<T>, IReadOnlyRepository<T, TKey>
-        where T : class, IEntityWithKey<TKey>, IEntity
-        where TKey : IEquatable<TKey>
-    {
         /// <summary>
-        /// Deletes an entity from the repository by identifier.
+        /// Deletes entities based on a specification.
         /// </summary>
-        /// <param name="id">The identifier.</param>
+        /// <param name="specification">The specification to match entities to delete.</param>
+        void Delete(ISpecification<T> specification);
+
+        /// <summary>
+        /// Saves changes to the repository.
+        /// </summary>
+        /// <returns>The number of entities saved.</returns>
+        int SaveChanges();
+
+        /// <summary>
+        /// Saves changes to the repository.
+        /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        Task DeleteByIdAsync(TKey id, CancellationToken cancellationToken = default);
+        /// <returns>The number of entities saved.</returns>
+        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

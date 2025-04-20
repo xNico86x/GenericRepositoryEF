@@ -1,11 +1,11 @@
 using GenericRepositoryEF.Core.Interfaces;
-using GenericRepositoryEF.Core.Specifications;
+using GenericRepositoryEF.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace GenericRepositoryEF.Infrastructure.Repositories
 {
     /// <summary>
-    /// Implementation of a repository.
+    /// Repository implementation for Entity Framework Core.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
     public class Repository<T> : ReadOnlyRepository<T>, IRepository<T> where T : class, IEntity
@@ -13,108 +13,167 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
         /// <summary>
         /// Initializes a new instance of the <see cref="Repository{T}"/> class.
         /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="evaluator">The evaluator.</param>
-        public Repository(DbContext context, ISpecificationEvaluator<T> evaluator)
-            : base(context, evaluator)
+        /// <param name="context">The database context.</param>
+        /// <param name="specificationEvaluator">The specification evaluator.</param>
+        public Repository(DbContext context, ISpecificationEvaluator specificationEvaluator)
+            : base(context, specificationEvaluator)
         {
         }
 
         /// <summary>
-        /// Adds an entity to the repository.
+        /// Adds a new entity.
+        /// </summary>
+        /// <param name="entity">The entity to add.</param>
+        /// <returns>The added entity.</returns>
+        public virtual T Add(T entity)
+        {
+            return DbSet.Add(entity).Entity;
+        }
+
+        /// <summary>
+        /// Adds a collection of entities.
+        /// </summary>
+        /// <param name="entities">The entities to add.</param>
+        /// <returns>The added entities.</returns>
+        public virtual IEnumerable<T> AddRange(IEnumerable<T> entities)
+        {
+            var addedEntities = new List<T>();
+            foreach (var entity in entities)
+            {
+                addedEntities.Add(Add(entity));
+            }
+            return addedEntities;
+        }
+
+        /// <summary>
+        /// Adds a new entity.
         /// </summary>
         /// <param name="entity">The entity to add.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added entity.</returns>
         public virtual async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
         {
-            await Context.Set<T>().AddAsync(entity, cancellationToken);
-            return entity;
+            var entityEntry = await DbSet.AddAsync(entity, cancellationToken);
+            return entityEntry.Entity;
         }
 
         /// <summary>
-        /// Adds a range of entities to the repository.
+        /// Adds a collection of entities.
         /// </summary>
         /// <param name="entities">The entities to add.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        public virtual async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+        /// <returns>The added entities.</returns>
+        public virtual async Task<IEnumerable<T>> AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
         {
-            await Context.Set<T>().AddRangeAsync(entities, cancellationToken);
+            var addedEntities = new List<T>();
+            foreach (var entity in entities)
+            {
+                addedEntities.Add(await AddAsync(entity, cancellationToken));
+            }
+            return addedEntities;
         }
 
         /// <summary>
-        /// Updates an entity in the repository.
+        /// Updates an entity.
         /// </summary>
         /// <param name="entity">The entity to update.</param>
         /// <returns>The updated entity.</returns>
         public virtual T Update(T entity)
         {
-            Context.Entry(entity).State = EntityState.Modified;
+            AttachIfDetached(entity);
+            DbContext.Entry(entity).State = EntityState.Modified;
             return entity;
         }
 
         /// <summary>
-        /// Updates a range of entities in the repository.
+        /// Updates a collection of entities.
         /// </summary>
         /// <param name="entities">The entities to update.</param>
-        public virtual void UpdateRange(IEnumerable<T> entities)
+        /// <returns>The updated entities.</returns>
+        public virtual IEnumerable<T> UpdateRange(IEnumerable<T> entities)
         {
-            Context.Set<T>().UpdateRange(entities);
+            var updatedEntities = new List<T>();
+            foreach (var entity in entities)
+            {
+                updatedEntities.Add(Update(entity));
+            }
+            return updatedEntities;
         }
 
         /// <summary>
-        /// Deletes an entity from the repository.
+        /// Deletes an entity.
         /// </summary>
         /// <param name="entity">The entity to delete.</param>
-        /// <returns>The deleted entity.</returns>
-        public virtual T Delete(T entity)
+        public virtual void Delete(T entity)
         {
-            Context.Set<T>().Remove(entity);
-            return entity;
+            AttachIfDetached(entity);
+            DbSet.Remove(entity);
         }
 
         /// <summary>
-        /// Deletes a range of entities from the repository.
+        /// Deletes an entity by ID.
+        /// </summary>
+        /// <param name="id">The ID of the entity.</param>
+        public virtual void Delete(object id)
+        {
+            var entity = DbSet.Find(id);
+            if (entity != null)
+            {
+                Delete(entity);
+            }
+        }
+
+        /// <summary>
+        /// Deletes a collection of entities.
         /// </summary>
         /// <param name="entities">The entities to delete.</param>
         public virtual void DeleteRange(IEnumerable<T> entities)
         {
-            Context.Set<T>().RemoveRange(entities);
-        }
-    }
-
-    /// <summary>
-    /// Implementation of a repository with a key.
-    /// </summary>
-    /// <typeparam name="T">The type of entity.</typeparam>
-    /// <typeparam name="TKey">The type of the key.</typeparam>
-    public class Repository<T, TKey> : Repository<T>, IRepository<T, TKey>
-        where T : class, IEntityWithKey<TKey>, IEntity
-        where TKey : IEquatable<TKey>
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Repository{T, TKey}"/> class.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="evaluator">The evaluator.</param>
-        public Repository(DbContext context, ISpecificationEvaluator<T> evaluator)
-            : base(context, evaluator)
-        {
-        }
-
-        /// <summary>
-        /// Deletes an entity from the repository by identifier.
-        /// </summary>
-        /// <param name="id">The identifier.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        public virtual async Task DeleteByIdAsync(TKey id, CancellationToken cancellationToken = default)
-        {
-            var entity = await GetByIdAsync(id, cancellationToken);
-            if (entity != null)
+            foreach (var entity in entities)
             {
                 Delete(entity);
+            }
+        }
+
+        /// <summary>
+        /// Deletes entities based on a specification.
+        /// </summary>
+        /// <param name="specification">The specification to match entities to delete.</param>
+        public virtual void Delete(ISpecification<T> specification)
+        {
+            var entities = GetAll(specification);
+            DeleteRange(entities);
+        }
+
+        /// <summary>
+        /// Saves changes to the repository.
+        /// </summary>
+        /// <returns>The number of entities saved.</returns>
+        public virtual int SaveChanges()
+        {
+            return DbContext.SaveChanges();
+        }
+
+        /// <summary>
+        /// Saves changes to the repository.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of entities saved.</returns>
+        public virtual Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return DbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Attaches an entity if it's not already tracked.
+        /// </summary>
+        /// <param name="entity">The entity to attach.</param>
+        protected virtual void AttachIfDetached(T entity)
+        {
+            var entry = DbContext.Entry(entity);
+            if (entry.State == EntityState.Detached)
+            {
+                DbContext.Attach(entity);
             }
         }
     }

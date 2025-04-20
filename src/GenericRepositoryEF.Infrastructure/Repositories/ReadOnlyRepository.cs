@@ -1,45 +1,82 @@
-using GenericRepositoryEF.Core.Exceptions;
 using GenericRepositoryEF.Core.Interfaces;
-using GenericRepositoryEF.Core.Specifications;
+using GenericRepositoryEF.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace GenericRepositoryEF.Infrastructure.Repositories
 {
     /// <summary>
-    /// Implementation of a read-only repository.
+    /// Read-only repository implementation for Entity Framework Core.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
     public class ReadOnlyRepository<T> : IReadOnlyRepository<T> where T : class, IEntity
     {
         /// <summary>
-        /// The context.
+        /// Gets the database context.
         /// </summary>
-        protected readonly DbContext Context;
+        protected readonly DbContext DbContext;
 
         /// <summary>
-        /// The evaluator.
+        /// Gets the database set.
         /// </summary>
-        protected readonly ISpecificationEvaluator<T> Evaluator;
+        protected readonly DbSet<T> DbSet;
+
+        /// <summary>
+        /// Gets the specification evaluator.
+        /// </summary>
+        protected readonly ISpecificationEvaluator SpecificationEvaluator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReadOnlyRepository{T}"/> class.
         /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="evaluator">The evaluator.</param>
-        public ReadOnlyRepository(DbContext context, ISpecificationEvaluator<T> evaluator)
+        /// <param name="context">The database context.</param>
+        /// <param name="specificationEvaluator">The specification evaluator.</param>
+        public ReadOnlyRepository(DbContext context, ISpecificationEvaluator specificationEvaluator)
         {
-            Context = context;
-            Evaluator = evaluator;
+            DbContext = context;
+            DbSet = context.Set<T>();
+            SpecificationEvaluator = specificationEvaluator;
         }
 
         /// <summary>
-        /// Gets the query.
+        /// Finds an entity by ID.
+        /// </summary>
+        /// <param name="id">The ID of the entity to find.</param>
+        /// <returns>The found entity or null.</returns>
+        public virtual T? Find(object id)
+        {
+            return DbSet.Find(id);
+        }
+
+        /// <summary>
+        /// Finds an entity by ID.
+        /// </summary>
+        /// <param name="id">The ID of the entity to find.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The found entity or null.</returns>
+        public virtual async Task<T?> FindAsync(object id, CancellationToken cancellationToken = default)
+        {
+            return await DbSet.FindAsync(new[] { id }, cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets all entities.
+        /// </summary>
+        /// <returns>All entities.</returns>
+        public virtual IReadOnlyList<T> GetAll()
+        {
+            return DbSet.AsNoTracking().ToList();
+        }
+
+        /// <summary>
+        /// Gets all entities with a specification.
         /// </summary>
         /// <param name="specification">The specification.</param>
-        /// <returns>The query.</returns>
-        protected virtual IQueryable<T> ApplySpecification(ISpecification<T> specification)
+        /// <returns>The found entities.</returns>
+        public virtual IReadOnlyList<T> GetAll(ISpecification<T> specification)
         {
-            return Evaluator.GetQuery(Context.Set<T>().AsQueryable(), specification);
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            return query.ToList();
         }
 
         /// <summary>
@@ -47,119 +84,256 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>All entities.</returns>
-        public virtual async Task<IReadOnlyList<T>> ListAllAsync(CancellationToken cancellationToken = default)
+        public virtual async Task<IReadOnlyList<T>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            return await Context.Set<T>().ToListAsync(cancellationToken);
+            return await DbSet.AsNoTracking().ToListAsync(cancellationToken);
         }
 
         /// <summary>
-        /// Gets entities using a specification.
+        /// Gets all entities with a specification.
         /// </summary>
         /// <param name="specification">The specification.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The entities that match the specification.</returns>
-        public virtual async Task<IReadOnlyList<T>> ListAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
+        /// <returns>The found entities.</returns>
+        public virtual async Task<IReadOnlyList<T>> GetAllAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
         {
-            return await ApplySpecification(specification).ToListAsync(cancellationToken);
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            return await query.ToListAsync(cancellationToken);
         }
 
         /// <summary>
-        /// Gets the first entity that matches the specification.
+        /// Gets a single entity with a specification.
         /// </summary>
         /// <param name="specification">The specification.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The first entity that matches the specification.</returns>
-        public virtual async Task<T?> FirstOrDefaultAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
+        /// <returns>The found entity or null.</returns>
+        public virtual T? GetSingleOrDefault(ISpecification<T> specification)
         {
-            return await ApplySpecification(specification).FirstOrDefaultAsync(cancellationToken);
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            return query.SingleOrDefault();
         }
 
         /// <summary>
-        /// Gets the first entity that matches the specification or throws an exception.
+        /// Gets a single entity with a specification.
         /// </summary>
         /// <param name="specification">The specification.</param>
-        /// <param name="throwIfNotFound">If true, throws an exception if no entity matches the specification.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The first entity that matches the specification.</returns>
-        /// <exception cref="EntityNotFoundException">If no entity matches the specification and throwIfNotFound is true.</exception>
-        public virtual async Task<T> FirstOrDefaultAsync(ISpecification<T> specification, bool throwIfNotFound, CancellationToken cancellationToken = default)
+        /// <returns>The found entity or null.</returns>
+        public virtual async Task<T?> GetSingleOrDefaultAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
         {
-            var entity = await FirstOrDefaultAsync(specification, cancellationToken);
-            if (entity == null && throwIfNotFound)
-            {
-                throw new EntityNotFoundException(typeof(T));
-            }
-            return entity!;
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            return await query.SingleOrDefaultAsync(cancellationToken);
         }
 
         /// <summary>
-        /// Counts entities using a specification.
+        /// Gets the first entity with a specification.
+        /// </summary>
+        /// <param name="specification">The specification.</param>
+        /// <returns>The found entity or null.</returns>
+        public virtual T? GetFirstOrDefault(ISpecification<T> specification)
+        {
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            return query.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Gets the first entity with a specification.
         /// </summary>
         /// <param name="specification">The specification.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The count of entities that match the specification.</returns>
+        /// <returns>The found entity or null.</returns>
+        public virtual async Task<T?> GetFirstOrDefaultAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
+        {
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            return await query.FirstOrDefaultAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Counts the number of entities.
+        /// </summary>
+        /// <returns>The number of entities.</returns>
+        public virtual int Count()
+        {
+            return DbSet.Count();
+        }
+
+        /// <summary>
+        /// Counts the number of entities with a specification.
+        /// </summary>
+        /// <param name="specification">The specification.</param>
+        /// <returns>The number of entities.</returns>
+        public virtual int Count(ISpecification<T> specification)
+        {
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            return query.Count();
+        }
+
+        /// <summary>
+        /// Counts the number of entities.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of entities.</returns>
+        public virtual async Task<int> CountAsync(CancellationToken cancellationToken = default)
+        {
+            return await DbSet.CountAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Counts the number of entities with a specification.
+        /// </summary>
+        /// <param name="specification">The specification.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of entities.</returns>
         public virtual async Task<int> CountAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
         {
-            return await ApplySpecification(specification).CountAsync(cancellationToken);
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            return await query.CountAsync(cancellationToken);
         }
 
         /// <summary>
-        /// Checks if any entity matches the specification.
+        /// Checks if an entity with the specification exists.
+        /// </summary>
+        /// <param name="specification">The specification.</param>
+        /// <returns>True if an entity exists, otherwise false.</returns>
+        public virtual bool Any(ISpecification<T> specification)
+        {
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            return query.Any();
+        }
+
+        /// <summary>
+        /// Checks if an entity with the specification exists.
         /// </summary>
         /// <param name="specification">The specification.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>True if any entity matches the specification.</returns>
+        /// <returns>True if an entity exists, otherwise false.</returns>
         public virtual async Task<bool> AnyAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
         {
-            return await ApplySpecification(specification).AnyAsync(cancellationToken);
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            return await query.AnyAsync(cancellationToken);
         }
-    }
 
-    /// <summary>
-    /// Implementation of a read-only repository with a key.
-    /// </summary>
-    /// <typeparam name="T">The type of entity.</typeparam>
-    /// <typeparam name="TKey">The type of the key.</typeparam>
-    public class ReadOnlyRepository<T, TKey> : ReadOnlyRepository<T>, IReadOnlyRepository<T, TKey>
-        where T : class, IEntityWithKey<TKey>, IEntity
-        where TKey : IEquatable<TKey>
-    {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReadOnlyRepository{T, TKey}"/> class.
+        /// Gets a paged result.
         /// </summary>
-        /// <param name="context">The context.</param>
-        /// <param name="evaluator">The evaluator.</param>
-        public ReadOnlyRepository(DbContext context, ISpecificationEvaluator<T> evaluator)
-            : base(context, evaluator)
+        /// <param name="specification">The specification.</param>
+        /// <param name="pageNumber">The page number.</param>
+        /// <param name="pageSize">The page size.</param>
+        /// <returns>The paged result.</returns>
+        public virtual PagedResult<T> GetPaged(ISpecification<T> specification, int pageNumber, int pageSize)
         {
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            var totalCount = query.Count();
+
+            var pagedSpecification = new PagedSpecification<T>(specification, pageNumber, pageSize);
+            var pagedQuery = specificationEvaluator.GetQuery(DbSet, pagedSpecification);
+            var items = pagedQuery.ToList();
+
+            return PagedResult<T>.Create(items, totalCount, pageNumber, pageSize);
         }
 
         /// <summary>
-        /// Gets an entity by identifier.
+        /// Gets a paged result.
         /// </summary>
-        /// <param name="id">The identifier.</param>
+        /// <param name="specification">The specification.</param>
+        /// <param name="pageNumber">The page number.</param>
+        /// <param name="pageSize">The page size.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The entity.</returns>
-        public virtual async Task<T?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
+        /// <returns>The paged result.</returns>
+        public virtual async Task<PagedResult<T>> GetPagedAsync(ISpecification<T> specification, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
         {
-            return await Context.Set<T>().FindAsync(new object[] { id }, cancellationToken);
+            var specificationEvaluator = SpecificationEvaluator.For<T>();
+            var query = specificationEvaluator.GetQuery(DbSet, specification);
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var pagedSpecification = new PagedSpecification<T>(specification, pageNumber, pageSize);
+            var pagedQuery = specificationEvaluator.GetQuery(DbSet, pagedSpecification);
+            var items = await pagedQuery.ToListAsync(cancellationToken);
+
+            return PagedResult<T>.Create(items, totalCount, pageNumber, pageSize);
         }
 
         /// <summary>
-        /// Gets an entity by identifier or throws an exception.
+        /// Specification for paged queries.
         /// </summary>
-        /// <param name="id">The identifier.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The entity.</returns>
-        /// <exception cref="EntityNotFoundException">If the entity is not found.</exception>
-        public virtual async Task<T> GetByIdOrThrowAsync(TKey id, CancellationToken cancellationToken = default)
+        /// <typeparam name="TEntity">The type of entity.</typeparam>
+        protected class PagedSpecification<TEntity> : ISpecification<TEntity> where TEntity : class, IEntity
         {
-            var entity = await GetByIdAsync(id, cancellationToken);
-            if (entity == null)
+            private readonly ISpecification<TEntity> _baseSpecification;
+            private readonly int _pageNumber;
+            private readonly int _pageSize;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="PagedSpecification{TEntity}"/> class.
+            /// </summary>
+            /// <param name="baseSpecification">The base specification.</param>
+            /// <param name="pageNumber">The page number.</param>
+            /// <param name="pageSize">The page size.</param>
+            public PagedSpecification(ISpecification<TEntity> baseSpecification, int pageNumber, int pageSize)
             {
-                throw new EntityNotFoundException(typeof(T), id.ToString());
+                _baseSpecification = baseSpecification;
+                _pageNumber = pageNumber;
+                _pageSize = pageSize;
             }
-            return entity;
+
+            /// <summary>
+            /// Gets the criteria.
+            /// </summary>
+            public System.Linq.Expressions.Expression<Func<TEntity, bool>>? Criteria => _baseSpecification.Criteria;
+
+            /// <summary>
+            /// Gets the includes.
+            /// </summary>
+            public List<System.Linq.Expressions.Expression<Func<TEntity, object>>> Includes => _baseSpecification.Includes;
+
+            /// <summary>
+            /// Gets the include strings.
+            /// </summary>
+            public List<string> IncludeStrings => _baseSpecification.IncludeStrings;
+
+            /// <summary>
+            /// Gets the order by.
+            /// </summary>
+            public System.Linq.Expressions.Expression<Func<TEntity, object>>? OrderBy => _baseSpecification.OrderBy;
+
+            /// <summary>
+            /// Gets the order by descending.
+            /// </summary>
+            public System.Linq.Expressions.Expression<Func<TEntity, object>>? OrderByDescending => _baseSpecification.OrderByDescending;
+
+            /// <summary>
+            /// Gets the group by.
+            /// </summary>
+            public System.Linq.Expressions.Expression<Func<TEntity, object>>? GroupBy => _baseSpecification.GroupBy;
+
+            /// <summary>
+            /// Gets a value indicating whether tracking is enabled.
+            /// </summary>
+            public bool IsTrackingEnabled => _baseSpecification.IsTrackingEnabled;
+
+            /// <summary>
+            /// Gets a value indicating whether paging is enabled.
+            /// </summary>
+            public bool IsPagingEnabled => true;
+
+            /// <summary>
+            /// Gets the skip.
+            /// </summary>
+            public int? Skip => (_pageNumber - 1) * _pageSize;
+
+            /// <summary>
+            /// Gets the take.
+            /// </summary>
+            public int? Take => _pageSize;
         }
     }
 }

@@ -1,8 +1,10 @@
 using GenericRepositoryEF.Core.Interfaces;
-using GenericRepositoryEF.Core.Specifications;
-using GenericRepositoryEF.Infrastructure.Factories;
+using GenericRepositoryEF.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
+using System.Data;
 
 namespace GenericRepositoryEF.Infrastructure.UnitOfWork
 {
@@ -12,8 +14,12 @@ namespace GenericRepositoryEF.Infrastructure.UnitOfWork
     public class UnitOfWork : IUnitOfWork
     {
         private readonly DbContext _context;
-        private readonly RepositoryFactory _repositoryFactory;
         private readonly ISpecificationEvaluator _specificationEvaluator;
+        private readonly IServiceProvider? _serviceProvider;
+        private IDbContextTransaction? _transaction;
+        private Dictionary<Type, object> _repositories = new();
+        private Dictionary<Type, object> _readOnlyRepositories = new();
+        private Dictionary<Type, object> _cachedRepositories = new();
         private bool _disposed;
 
         /// <summary>
@@ -21,81 +27,191 @@ namespace GenericRepositoryEF.Infrastructure.UnitOfWork
         /// </summary>
         /// <param name="context">The database context.</param>
         /// <param name="specificationEvaluator">The specification evaluator.</param>
-        public UnitOfWork(DbContext context, ISpecificationEvaluator specificationEvaluator)
+        /// <param name="serviceProvider">The service provider.</param>
+        public UnitOfWork(
+            DbContext context,
+            ISpecificationEvaluator specificationEvaluator,
+            IServiceProvider? serviceProvider = null)
         {
             _context = context;
             _specificationEvaluator = specificationEvaluator;
-            _repositoryFactory = new RepositoryFactory(context, specificationEvaluator);
+            _serviceProvider = serviceProvider;
         }
 
         /// <summary>
-        /// Gets a repository for an entity.
+        /// Gets a repository for the specified entity type.
         /// </summary>
         /// <typeparam name="T">The type of entity.</typeparam>
-        /// <returns>The repository.</returns>
+        /// <returns>A repository for the entity type.</returns>
         public IRepository<T> Repository<T>() where T : class, IEntity
         {
-            return _repositoryFactory.CreateRepository<T>();
+            var type = typeof(T);
+
+            if (!_repositories.ContainsKey(type))
+            {
+                _repositories[type] = new Repository<T>(_context, _specificationEvaluator);
+            }
+
+            return (IRepository<T>)_repositories[type];
         }
 
         /// <summary>
-        /// Gets a repository for an entity with a key.
+        /// Gets a read-only repository for the specified entity type.
         /// </summary>
         /// <typeparam name="T">The type of entity.</typeparam>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <returns>The repository.</returns>
-        public IRepository<T, TKey> Repository<T, TKey>() 
-            where T : class, IEntityWithKey<TKey>, IEntity
-            where TKey : IEquatable<TKey>
-        {
-            return _repositoryFactory.CreateRepository<T, TKey>();
-        }
-
-        /// <summary>
-        /// Gets a read-only repository for an entity.
-        /// </summary>
-        /// <typeparam name="T">The type of entity.</typeparam>
-        /// <returns>The repository.</returns>
+        /// <returns>A read-only repository for the entity type.</returns>
         public IReadOnlyRepository<T> ReadOnlyRepository<T>() where T : class, IEntity
         {
-            return _repositoryFactory.CreateReadOnlyRepository<T>();
+            var type = typeof(T);
+
+            if (!_readOnlyRepositories.ContainsKey(type))
+            {
+                _readOnlyRepositories[type] = new ReadOnlyRepository<T>(_context, _specificationEvaluator);
+            }
+
+            return (IReadOnlyRepository<T>)_readOnlyRepositories[type];
         }
 
         /// <summary>
-        /// Gets a read-only repository for an entity with a key.
+        /// Gets a cached repository for the specified entity type.
         /// </summary>
         /// <typeparam name="T">The type of entity.</typeparam>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <returns>The repository.</returns>
-        public IReadOnlyRepository<T, TKey> ReadOnlyRepository<T, TKey>() 
-            where T : class, IEntityWithKey<TKey>, IEntity
-            where TKey : IEquatable<TKey>
+        /// <returns>A cached repository for the entity type.</returns>
+        public ICachedRepository<T> CachedRepository<T>() where T : class, IEntity
         {
-            return _repositoryFactory.CreateReadOnlyRepository<T, TKey>();
-        }
+            var type = typeof(T);
 
-        /// <summary>
-        /// Saves changes to the database.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The number of affected records.</returns>
-        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            return await _context.SaveChangesAsync(cancellationToken);
+            if (!_cachedRepositories.ContainsKey(type))
+            {
+                if (_serviceProvider == null)
+                {
+                    throw new InvalidOperationException("Service provider is required for cached repositories.");
+                }
+
+                var cache = _serviceProvider.GetRequiredService<IDistributedCache>();
+                var dateTime = _serviceProvider.GetRequiredService<IDateTime>();
+
+                _cachedRepositories[type] = new CachedRepository<T>(_context, _specificationEvaluator, cache, dateTime);
+            }
+
+            return (ICachedRepository<T>)_cachedRepositories[type];
         }
 
         /// <summary>
         /// Begins a transaction.
         /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The database transaction.</returns>
-        public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+        /// <returns>A transaction.</returns>
+        public IDbTransaction BeginTransaction()
         {
-            return await _context.Database.BeginTransactionAsync(cancellationToken);
+            _transaction = _context.Database.BeginTransaction();
+            return _transaction.GetDbTransaction();
         }
 
         /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// Begins a transaction with the specified isolation level.
+        /// </summary>
+        /// <param name="isolationLevel">The isolation level.</param>
+        /// <returns>A transaction.</returns>
+        public IDbTransaction BeginTransaction(IsolationLevel isolationLevel)
+        {
+            _transaction = _context.Database.BeginTransaction(isolationLevel);
+            return _transaction.GetDbTransaction();
+        }
+
+        /// <summary>
+        /// Begins a transaction asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A transaction.</returns>
+        public async Task<IDbTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            _transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            return _transaction.GetDbTransaction();
+        }
+
+        /// <summary>
+        /// Begins a transaction with the specified isolation level asynchronously.
+        /// </summary>
+        /// <param name="isolationLevel">The isolation level.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A transaction.</returns>
+        public async Task<IDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+        {
+            _transaction = await _context.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
+            return _transaction.GetDbTransaction();
+        }
+
+        /// <summary>
+        /// Commits the transaction.
+        /// </summary>
+        public void CommitTransaction()
+        {
+            _transaction?.Commit();
+            _transaction?.Dispose();
+            _transaction = null;
+        }
+
+        /// <summary>
+        /// Rolls back the transaction.
+        /// </summary>
+        public void RollbackTransaction()
+        {
+            _transaction?.Rollback();
+            _transaction?.Dispose();
+            _transaction = null;
+        }
+
+        /// <summary>
+        /// Commits the transaction asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            if (_transaction != null)
+            {
+                await _transaction.CommitAsync(cancellationToken);
+                await _transaction.DisposeAsync();
+                _transaction = null;
+            }
+        }
+
+        /// <summary>
+        /// Rolls back the transaction asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            if (_transaction != null)
+            {
+                await _transaction.RollbackAsync(cancellationToken);
+                await _transaction.DisposeAsync();
+                _transaction = null;
+            }
+        }
+
+        /// <summary>
+        /// Saves all changes made in this context to the database.
+        /// </summary>
+        /// <returns>The number of affected entities.</returns>
+        public int SaveChanges()
+        {
+            return _context.SaveChanges();
+        }
+
+        /// <summary>
+        /// Saves all changes made in this context to the database asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of affected entities.</returns>
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return _context.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Disposes the unit of work.
         /// </summary>
         public void Dispose()
         {
@@ -104,15 +220,16 @@ namespace GenericRepositoryEF.Infrastructure.UnitOfWork
         }
 
         /// <summary>
-        /// Releases unmanaged and - optionally - managed resources.
+        /// Disposes the unit of work.
         /// </summary>
-        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        /// <param name="disposing">Whether to dispose managed resources.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {
                 if (disposing)
                 {
+                    _transaction?.Dispose();
                     _context.Dispose();
                 }
 
