@@ -751,7 +751,14 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
             if (_distributedCache != null)
             {
                 var cacheData = JsonSerializer.SerializeToUtf8Bytes(entity);
-                _distributedCache.Set(cacheKey, cacheData, _distributedCacheOptions);
+                if (_distributedCacheOptions != null)
+                {
+                    _distributedCache.Set(cacheKey, cacheData, _distributedCacheOptions);
+                }
+                else
+                {
+                    _distributedCache.Set(cacheKey, cacheData);
+                }
             }
         }
 
@@ -773,7 +780,14 @@ namespace GenericRepositoryEF.Infrastructure.Repositories
             if (_distributedCache != null)
             {
                 var cacheData = JsonSerializer.SerializeToUtf8Bytes(entity);
-                await _distributedCache.SetAsync(cacheKey, cacheData, _distributedCacheOptions, cancellationToken);
+                if (_distributedCacheOptions != null)
+                {
+                    await _distributedCache.SetAsync(cacheKey, cacheData, _distributedCacheOptions, cancellationToken);
+                }
+                else
+                {
+                    await _distributedCache.SetAsync(cacheKey, cacheData, cancellationToken);
+                }
             }
         }
 

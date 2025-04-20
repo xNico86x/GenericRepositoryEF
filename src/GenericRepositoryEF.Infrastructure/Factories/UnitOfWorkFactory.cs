@@ -1,6 +1,6 @@
 using GenericRepositoryEF.Core.Interfaces;
-using GenericRepositoryEF.Infrastructure.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
+using UnitOfWork = GenericRepositoryEF.Infrastructure.UnitOfWork.UnitOfWork;
 
 namespace GenericRepositoryEF.Infrastructure.Factories
 {
