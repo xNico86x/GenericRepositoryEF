@@ -1,54 +1,28 @@
 using GenericRepositoryEF.Core.Interfaces;
-using GenericRepositoryEF.Core.Specifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace GenericRepositoryEF.Infrastructure.Specifications
 {
     /// <summary>
-    /// Evaluates specifications to build Entity Framework queries.
+    /// Evaluator for specifications.
     /// </summary>
     public class SpecificationEvaluator : ISpecificationEvaluator
     {
         /// <summary>
-        /// Gets the query that represents the specification.
+        /// Gets the query.
         /// </summary>
         /// <typeparam name="T">The type of entity.</typeparam>
         /// <param name="inputQuery">The input query.</param>
-        /// <param name="specification">The specification to apply.</param>
-        /// <returns>The resulting query.</returns>
-        public IQueryable<T> GetQuery<T>(IQueryable<T> inputQuery, ISpecification<T> specification) where T : class
+        /// <param name="specification">The specification.</param>
+        /// <returns>The query.</returns>
+        public IQueryable<T> GetQuery<T>(IQueryable<T> inputQuery, ISpecification<T> specification) where T : class, IEntity
         {
             var query = inputQuery;
 
-            // Apply AsNoTracking if specified
-            if (specification.AsNoTracking)
-            {
-                query = query.AsNoTracking();
-            }
-
-            // Apply filtering
+            // Apply criteria
             if (specification.Criteria != null)
             {
                 query = query.Where(specification.Criteria);
-            }
-
-            // Include each simple property
-            foreach (var include in specification.Includes)
-            {
-                query = query.Include(include);
-            }
-
-            // Include each string-based path
-            foreach (var includeString in specification.IncludeStrings)
-            {
-                query = query.Include(includeString);
-            }
-
-            // Include each complex nested property using grouped includes
-            foreach (var (selector, navigationPropertyPath) in specification.GroupedIncludes)
-            {
-                query = query.Include(selector)
-                             .ThenInclude(navigationPropertyPath);
             }
 
             // Apply ordering
@@ -61,11 +35,28 @@ namespace GenericRepositoryEF.Infrastructure.Specifications
                 query = query.OrderByDescending(specification.OrderByDescending);
             }
 
+            // Apply grouping
+            if (specification.GroupBy != null)
+            {
+                query = query.GroupBy(specification.GroupBy)
+                    .SelectMany(x => x);
+            }
+
+            // Apply includes
+            query = specification.Includes.Aggregate(
+                query,
+                (current, include) => current.Include(include));
+
+            // Apply include strings
+            query = specification.IncludeStrings.Aggregate(
+                query,
+                (current, include) => current.Include(include));
+
             // Apply paging
             if (specification.IsPagingEnabled)
             {
                 query = query.Skip(specification.Skip!.Value)
-                             .Take(specification.Take!.Value);
+                    .Take(specification.Take!.Value);
             }
 
             return query;

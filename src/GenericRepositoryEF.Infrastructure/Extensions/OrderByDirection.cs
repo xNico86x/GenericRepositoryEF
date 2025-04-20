@@ -1,7 +1,7 @@
-namespace GenericRepositoryEF.Core.Models
+namespace GenericRepositoryEF.Infrastructure.Extensions
 {
     /// <summary>
-    /// Represents the direction of an order by operation.
+    /// Direction to order by.
     /// </summary>
     public enum OrderByDirection
     {

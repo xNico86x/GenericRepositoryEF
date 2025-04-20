@@ -1,86 +1,73 @@
-using GenericRepositoryEF.Core.Models;
-using System.Linq.Expressions;
-
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Defines a read-only repository for accessing entities.
+    /// Interface for a read-only repository.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
-    /// <typeparam name="TKey">The type of the entity identifier.</typeparam>
-    public interface IReadOnlyRepository<T, TKey> where T : class, IEntity<TKey> where TKey : IEquatable<TKey>
+    public interface IReadOnlyRepository<T> where T : class, IEntity
     {
         /// <summary>
-        /// Gets an entity by its identifier.
+        /// Gets all entities asynchronously.
         /// </summary>
-        /// <param name="id">The entity identifier.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The entity, or null if not found.</returns>
-        Task<T?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default);
-        
+        /// <returns>A collection of entities.</returns>
+        Task<IReadOnlyList<T>> ListAllAsync(CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Gets all entities.
+        /// Gets entities using a specification asynchronously.
         /// </summary>
+        /// <param name="specification">The specification.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A read-only list of entities.</returns>
-        Task<IReadOnlyList<T>> GetAllAsync(CancellationToken cancellationToken = default);
-        
+        /// <returns>A collection of entities.</returns>
+        Task<IReadOnlyList<T>> ListAsync(ISpecification<T> specification, CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Gets entities that satisfy the specified predicate.
+        /// Counts entities using a specification asynchronously.
         /// </summary>
-        /// <param name="predicate">The predicate to filter entities.</param>
+        /// <param name="specification">The specification.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A read-only list of filtered entities.</returns>
-        Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
-        
+        /// <returns>The count of entities.</returns>
+        Task<int> CountAsync(ISpecification<T> specification, CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Determines whether any entity satisfies the specified predicate.
+        /// Determines whether any entity exists using a specification asynchronously.
         /// </summary>
-        /// <param name="predicate">The predicate to filter entities.</param>
+        /// <param name="specification">The specification.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>True if any entity satisfies the predicate; otherwise, false.</returns>
-        Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
-        
+        /// <returns>True if any entity exists, false otherwise.</returns>
+        Task<bool> AnyAsync(ISpecification<T> specification, CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Counts the number of entities that satisfy the specified specification.
+        /// Gets the first entity using a specification asynchronously.
         /// </summary>
-        /// <param name="specification">The specification to filter entities, or null to count all entities.</param>
+        /// <param name="specification">The specification.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The number of entities.</returns>
-        Task<int> CountAsync(ISpecification<T>? specification = null, CancellationToken cancellationToken = default);
-        
+        /// <returns>The first entity, or null if no entity exists.</returns>
+        Task<T?> FirstOrDefaultAsync(ISpecification<T> specification, CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Gets a page of entities that satisfy the specified specification.
+        /// Gets a single entity using a specification asynchronously.
         /// </summary>
-        /// <param name="pageNumber">The page number.</param>
-        /// <param name="pageSize">The page size.</param>
-        /// <param name="specification">The specification to filter entities, or null to page all entities.</param>
+        /// <param name="specification">The specification.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A paged result of entities.</returns>
-        Task<PagedResult<T>> GetPagedAsync(int pageNumber, int pageSize, ISpecification<T>? specification = null, CancellationToken cancellationToken = default);
-        
-        /// <summary>
-        /// Gets entities that satisfy the specified specification.
-        /// </summary>
-        /// <param name="specification">The specification to filter entities.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A read-only list of filtered entities.</returns>
-        Task<IReadOnlyList<T>> GetBySpecificationAsync(ISpecification<T> specification, CancellationToken cancellationToken = default);
-        
-        /// <summary>
-        /// Gets a single entity that satisfies the specified specification.
-        /// </summary>
-        /// <param name="specification">The specification to filter entities.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The entity, or null if not found.</returns>
-        Task<T?> GetSingleBySpecificationAsync(ISpecification<T> specification, CancellationToken cancellationToken = default);
+        /// <returns>A single entity, or null if no entity exists.</returns>
+        Task<T?> SingleOrDefaultAsync(ISpecification<T> specification, CancellationToken cancellationToken = default);
     }
-    
+
     /// <summary>
-    /// Defines a read-only repository for accessing entities with an integer identifier.
+    /// Interface for a read-only repository with a key.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
-    public interface IReadOnlyRepository<T> : IReadOnlyRepository<T, int> where T : class, IEntity<int>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    public interface IReadOnlyRepository<T, TKey> : IReadOnlyRepository<T>
+        where T : class, IEntityWithKey<TKey>, IEntity
     {
+        /// <summary>
+        /// Gets an entity by its identifier asynchronously.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The entity, or null if the entity does not exist.</returns>
+        Task<T?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default);
     }
 }

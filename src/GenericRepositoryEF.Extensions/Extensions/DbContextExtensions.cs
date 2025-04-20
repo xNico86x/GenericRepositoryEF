@@ -1,7 +1,6 @@
+using System.Linq.Expressions;
 using GenericRepositoryEF.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace GenericRepositoryEF.Extensions.Extensions
 {
@@ -11,22 +10,21 @@ namespace GenericRepositoryEF.Extensions.Extensions
     public static class DbContextExtensions
     {
         /// <summary>
-        /// Applies global query filters for soft delete and multi-tenancy.
+        /// Configures the entity framework model builder to enable soft delete filter for entities that implement <see cref="ISoftDelete"/>.
         /// </summary>
         /// <param name="modelBuilder">The model builder.</param>
-        /// <returns>The model builder for method chaining.</returns>
-        public static ModelBuilder ApplyGlobalFilters(this ModelBuilder modelBuilder)
+        /// <returns>The model builder for chaining.</returns>
+        public static ModelBuilder ConfigureSoftDeleteFilter(this ModelBuilder modelBuilder)
         {
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
-                // Apply soft delete filter
                 if (typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType))
                 {
-                    var parameter = System.Linq.Expressions.Expression.Parameter(entityType.ClrType, "e");
-                    var property = System.Linq.Expressions.Expression.PropertyOrField(parameter, nameof(ISoftDelete.IsDeleted));
-                    var falseConstant = System.Linq.Expressions.Expression.Constant(false);
-                    var condition = System.Linq.Expressions.Expression.Equal(property, falseConstant);
-                    var lambda = System.Linq.Expressions.Expression.Lambda(condition, parameter);
+                    var parameter = Expression.Parameter(entityType.ClrType, "p");
+                    var property = Expression.Property(parameter, nameof(ISoftDelete.IsDeleted));
+                    var falseConst = Expression.Constant(false);
+                    var expression = Expression.Equal(property, falseConst);
+                    var lambda = Expression.Lambda(expression, parameter);
 
                     modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
                 }
@@ -36,110 +34,75 @@ namespace GenericRepositoryEF.Extensions.Extensions
         }
 
         /// <summary>
-        /// Configures audit properties for entities.
+        /// Configures all entities that implement <see cref="ISoftDelete"/> to use a concurrency token.
         /// </summary>
         /// <param name="modelBuilder">The model builder.</param>
-        /// <returns>The model builder for method chaining.</returns>
-        public static ModelBuilder ConfigureAuditProperties(this ModelBuilder modelBuilder)
+        /// <returns>The model builder for chaining.</returns>
+        public static ModelBuilder ConfigureConcurrencyToken(this ModelBuilder modelBuilder)
         {
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
-                // Configure audit properties
-                if (typeof(IAuditableEntity).IsAssignableFrom(entityType.ClrType))
-                {
-                    modelBuilder.Entity(entityType.ClrType)
-                        .Property(nameof(IAuditableEntity.CreatedAt))
-                        .IsRequired();
-
-                    modelBuilder.Entity(entityType.ClrType)
-                        .Property(nameof(IAuditableEntity.CreatedBy))
-                        .IsRequired()
-                        .HasMaxLength(256);
-
-                    modelBuilder.Entity(entityType.ClrType)
-                        .Property(nameof(IAuditableEntity.LastModifiedAt))
-                        .IsRequired(false);
-
-                    modelBuilder.Entity(entityType.ClrType)
-                        .Property(nameof(IAuditableEntity.LastModifiedBy))
-                        .IsRequired(false)
-                        .HasMaxLength(256);
-                }
-                
-                // Configure soft delete properties
                 if (typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType))
                 {
-                    modelBuilder.Entity(entityType.ClrType)
-                        .Property(nameof(ISoftDelete.IsDeleted))
-                        .IsRequired()
-                        .HasDefaultValue(false);
-
-                    modelBuilder.Entity(entityType.ClrType)
-                        .Property(nameof(ISoftDelete.DeletedAt))
-                        .IsRequired(false);
-
-                    modelBuilder.Entity(entityType.ClrType)
-                        .Property(nameof(ISoftDelete.DeletedBy))
-                        .IsRequired(false)
-                        .HasMaxLength(256);
+                    var property = entityType.FindProperty("RowVersion");
+                    if (property != null && property.ClrType == typeof(byte[]))
+                    {
+                        modelBuilder.Entity(entityType.ClrType)
+                            .Property("RowVersion")
+                            .IsRowVersion();
+                    }
                 }
             }
 
             return modelBuilder;
         }
-        
+
         /// <summary>
-        /// Updates audit properties for entities before saving changes.
+        /// Applies soft delete behavior to a delete operation rather than physically removing the record.
         /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
         /// <param name="dbContext">The database context.</param>
-        /// <param name="userId">The user identifier.</param>
-        public static void UpdateAuditProperties(this DbContext dbContext, string userId)
+        /// <param name="entity">The entity to delete.</param>
+        /// <returns>True if the entity was marked as deleted, false otherwise.</returns>
+        public static bool SoftDelete<T>(this DbContext dbContext, T entity) where T : class, ISoftDelete
         {
-            var entries = dbContext.ChangeTracker
-                .Entries()
-                .Where(e => e.Entity is IAuditableEntity && (
-                    e.State == EntityState.Added || 
-                    e.State == EntityState.Modified));
-
-            foreach (var entityEntry in entries)
+            if (entity == null)
             {
-                if (entityEntry.Entity is IAuditableEntity auditableEntity)
-                {
-                    var now = DateTime.UtcNow;
-                    
-                    if (entityEntry.State == EntityState.Added)
-                    {
-                        auditableEntity.CreatedAt = now;
-                        auditableEntity.CreatedBy = userId;
-                    }
-                    else
-                    {
-                        auditableEntity.LastModifiedAt = now;
-                        auditableEntity.LastModifiedBy = userId;
-                        
-                        // Don't modify CreatedAt and CreatedBy
-                        entityEntry.Property(nameof(IAuditableEntity.CreatedAt)).IsModified = false;
-                        entityEntry.Property(nameof(IAuditableEntity.CreatedBy)).IsModified = false;
-                    }
-                }
+                return false;
             }
-            
-            // Handle soft delete
-            var softDeleteEntries = dbContext.ChangeTracker
-                .Entries()
-                .Where(e => e.Entity is ISoftDelete && e.State == EntityState.Deleted);
 
-            foreach (var entityEntry in softDeleteEntries)
+            entity.IsDeleted = true;
+            entity.DeletedAt = DateTime.UtcNow;
+            dbContext.Entry(entity).State = EntityState.Modified;
+            return true;
+        }
+
+        /// <summary>
+        /// Applies soft delete behavior to a range of entities rather than physically removing the records.
+        /// </summary>
+        /// <typeparam name="T">The type of entity.</typeparam>
+        /// <param name="dbContext">The database context.</param>
+        /// <param name="entities">The entities to delete.</param>
+        /// <returns>The number of entities marked as deleted.</returns>
+        public static int SoftDeleteRange<T>(this DbContext dbContext, IEnumerable<T> entities) where T : class, ISoftDelete
+        {
+            if (entities == null)
             {
-                entityEntry.State = EntityState.Modified;
-                
-                if (entityEntry.Entity is ISoftDelete softDelete)
-                {
-                    softDelete.IsDeleted = true;
-                    softDelete.DeletedAt = DateTime.UtcNow;
-                    softDelete.DeletedBy = userId;
-                }
+                return 0;
             }
+
+            var count = 0;
+            var now = DateTime.UtcNow;
+
+            foreach (var entity in entities)
+            {
+                entity.IsDeleted = true;
+                entity.DeletedAt = now;
+                dbContext.Entry(entity).State = EntityState.Modified;
+                count++;
+            }
+
+            return count;
         }
     }
 }
