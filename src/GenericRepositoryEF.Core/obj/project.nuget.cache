@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "hhLoYOfc0Lg=",
+  "success": true,
+  "projectFilePath": "/home/runner/workspace/src/GenericRepositoryEF.Core/GenericRepositoryEF.Core.csproj",
+  "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/9.0.4/microsoft.extensions.dependencyinjection.abstractions.9.0.4.nupkg.sha512",
+    "/home/runner/.nuget/packages/microsoft.extensions.logging.abstractions/9.0.4/microsoft.extensions.logging.abstractions.9.0.4.nupkg.sha512",
+    "/home/runner/.nuget/packages/system.diagnostics.diagnosticsource/9.0.4/system.diagnostics.diagnosticsource.9.0.4.nupkg.sha512"
+  ],
+  "logs": []
+}

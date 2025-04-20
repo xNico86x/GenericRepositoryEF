@@ -1,0 +1,16 @@
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/obj/Debug/net8.0/GenericRepositoryEF.Infrastructure.csproj.AssemblyReference.cache
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/obj/Debug/net8.0/GenericRepositoryEF.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/obj/Debug/net8.0/GenericRepositoryEF.Infrastructure.AssemblyInfoInputs.cache
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/obj/Debug/net8.0/GenericRepositoryEF.Infrastructure.AssemblyInfo.cs
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/obj/Debug/net8.0/GenericRepositoryEF.Infrastructure.csproj.CoreCompileInputs.cache
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/obj/Debug/net8.0/GenericRepositoryEF.Infrastructure.sourcelink.json
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/bin/Debug/net8.0/GenericRepositoryEF.Infrastructure.deps.json
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/bin/Debug/net8.0/GenericRepositoryEF.Infrastructure.dll
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/bin/Debug/net8.0/GenericRepositoryEF.Infrastructure.pdb
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/bin/Debug/net8.0/GenericRepositoryEF.Core.dll
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/bin/Debug/net8.0/GenericRepositoryEF.Core.pdb
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/obj/Debug/net8.0/GenericR.A599ACF7.Up2Date
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/obj/Debug/net8.0/GenericRepositoryEF.Infrastructure.dll
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/obj/Debug/net8.0/refint/GenericRepositoryEF.Infrastructure.dll
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/obj/Debug/net8.0/GenericRepositoryEF.Infrastructure.pdb
+/home/runner/workspace/src/GenericRepositoryEF.Infrastructure/obj/Debug/net8.0/ref/GenericRepositoryEF.Infrastructure.dll
