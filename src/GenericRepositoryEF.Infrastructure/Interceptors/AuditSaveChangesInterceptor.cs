@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace GenericRepositoryEF.Infrastructure.Interceptors
 {
     /// <summary>
-    /// Interceptor for auditing save changes.
+    /// Interceptor for audit save changes.
     /// </summary>
     public class AuditSaveChangesInterceptor : SaveChangesInterceptor
     {
@@ -64,17 +64,11 @@ namespace GenericRepositoryEF.Infrastructure.Interceptors
                 {
                     entry.Entity.CreatedAt = now;
                     entry.Entity.CreatedBy = userId;
-                    entry.Entity.ModifiedAt = now;
-                    entry.Entity.ModifiedBy = userId;
                 }
                 else if (entry.State == EntityState.Modified)
                 {
                     entry.Entity.ModifiedAt = now;
                     entry.Entity.ModifiedBy = userId;
-
-                    // Ensure original created values are not modified
-                    entry.Property(p => p.CreatedAt).IsModified = false;
-                    entry.Property(p => p.CreatedBy).IsModified = false;
                 }
             }
         }

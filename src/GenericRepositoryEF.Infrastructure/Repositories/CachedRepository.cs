@@ -1,333 +1,430 @@
-using System.Text.Json;
 using GenericRepositoryEF.Core.Interfaces;
-using GenericRepositoryEF.Core.Specifications;
+using GenericRepositoryEF.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace GenericRepositoryEF.Infrastructure.Repositories
 {
     /// <summary>
-    /// Implementation of a cached repository.
+    /// Cached repository implementation for Entity Framework Core.
     /// </summary>
     /// <typeparam name="T">The type of entity.</typeparam>
-    public class CachedRepository<T> : ICachedRepository<T> where T : class, IEntity
+    public class CachedRepository<T> : Repository<T>, ICachedRepository<T> where T : class, IEntity
     {
-        private readonly IRepository<T> _repository;
         private readonly IDistributedCache _cache;
+        private readonly IDateTime _dateTime;
         private readonly DistributedCacheEntryOptions _cacheOptions;
-        private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(30);
-        
-        private readonly string _cacheKeyPrefix;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CachedRepository{T}"/> class.
         /// </summary>
-        /// <param name="repository">The repository.</param>
-        /// <param name="cache">The cache.</param>
-        public CachedRepository(IRepository<T> repository, IDistributedCache cache)
+        /// <param name="context">The database context.</param>
+        /// <param name="specificationEvaluator">The specification evaluator.</param>
+        /// <param name="cache">The distributed cache.</param>
+        /// <param name="dateTime">The date time service.</param>
+        /// <param name="cacheExpirationMinutes">The cache expiration in minutes. Default is 30 minutes.</param>
+        public CachedRepository(
+            DbContext context,
+            ISpecificationEvaluator specificationEvaluator,
+            IDistributedCache cache,
+            IDateTime dateTime,
+            int cacheExpirationMinutes = 30)
+            : base(context, specificationEvaluator)
         {
-            _repository = repository;
             _cache = cache;
-            _cacheKeyPrefix = $"GenericRepositoryEF:{typeof(T).Name}";
+            _dateTime = dateTime;
             _cacheOptions = new DistributedCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = _cacheDuration
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(cacheExpirationMinutes),
+                SlidingExpiration = TimeSpan.FromMinutes(cacheExpirationMinutes / 2)
             };
         }
 
         /// <summary>
-        /// Creates a cache key.
+        /// Finds an entity by ID with caching.
         /// </summary>
-        /// <param name="action">The action.</param>
-        /// <param name="parameters">The parameters.</param>
-        /// <returns>The cache key.</returns>
-        protected virtual string CreateCacheKey(string action, params object?[] parameters)
+        /// <param name="id">The ID of the entity to find.</param>
+        /// <returns>The found entity or null.</returns>
+        public override T? Find(object id)
         {
-            var parameterString = parameters != null && parameters.Length > 0
-                ? ":" + string.Join(":", parameters.Select(p => p?.ToString() ?? "null"))
-                : string.Empty;
-
-            return $"{_cacheKeyPrefix}:{action}{parameterString}";
-        }
-
-        /// <summary>
-        /// Gets a value from the cache.
-        /// </summary>
-        /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <param name="cacheKey">The cache key.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The value from the cache.</returns>
-        protected virtual async Task<TValue?> GetFromCacheAsync<TValue>(string cacheKey, CancellationToken cancellationToken = default)
-        {
-            var cachedBytes = await _cache.GetAsync(cacheKey, cancellationToken);
-            if (cachedBytes == null || cachedBytes.Length == 0)
-            {
-                return default;
-            }
-
-            return JsonSerializer.Deserialize<TValue>(cachedBytes);
-        }
-
-        /// <summary>
-        /// Sets a value in the cache.
-        /// </summary>
-        /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <param name="cacheKey">The cache key.</param>
-        /// <param name="value">The value.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        protected virtual async Task SetInCacheAsync<TValue>(string cacheKey, TValue value, CancellationToken cancellationToken = default)
-        {
-            var serializedValue = JsonSerializer.SerializeToUtf8Bytes(value);
-            await _cache.SetAsync(cacheKey, serializedValue, _cacheOptions, cancellationToken);
-        }
-
-        /// <summary>
-        /// Invalidates the cache.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        public virtual async Task InvalidateCacheAsync(CancellationToken cancellationToken = default)
-        {
-            // This is a simplified approach; in a real-world scenario,
-            // you might use a cache tag or prefix to group and invalidate related entries
-            // Currently, we're clearing all cache entries for this entity type
-            var cacheKey = CreateCacheKey("*");
-            await _cache.RemoveAsync(cacheKey, cancellationToken);
-        }
-
-        /// <summary>
-        /// Gets all entities.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>All entities.</returns>
-        public virtual async Task<IReadOnlyList<T>> ListAllAsync(CancellationToken cancellationToken = default)
-        {
-            var cacheKey = CreateCacheKey("ListAll");
-            var cachedResult = await GetFromCacheAsync<List<T>>(cacheKey, cancellationToken);
+            var cacheKey = GetCacheKey(id);
+            var cachedEntity = GetFromCache(cacheKey);
             
-            if (cachedResult != null)
+            if (cachedEntity != null)
             {
-                return cachedResult;
+                return cachedEntity;
             }
 
-            var result = await _repository.ListAllAsync(cancellationToken);
-            await SetInCacheAsync(cacheKey, result, cancellationToken);
+            var entity = base.Find(id);
+            
+            if (entity != null)
+            {
+                SetCache(cacheKey, entity);
+            }
+
+            return entity;
+        }
+
+        /// <summary>
+        /// Finds an entity by ID with caching.
+        /// </summary>
+        /// <param name="id">The ID of the entity to find.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The found entity or null.</returns>
+        public override async Task<T?> FindAsync(object id, CancellationToken cancellationToken = default)
+        {
+            var cacheKey = GetCacheKey(id);
+            var cachedEntity = await GetFromCacheAsync(cacheKey, cancellationToken);
+            
+            if (cachedEntity != null)
+            {
+                return cachedEntity;
+            }
+
+            var entity = await base.FindAsync(id, cancellationToken);
+            
+            if (entity != null)
+            {
+                await SetCacheAsync(cacheKey, entity, cancellationToken);
+            }
+
+            return entity;
+        }
+
+        /// <summary>
+        /// Adds a new entity and invalidates cache.
+        /// </summary>
+        /// <param name="entity">The entity to add.</param>
+        /// <returns>The added entity.</returns>
+        public override T Add(T entity)
+        {
+            var result = base.Add(entity);
+            SaveChanges();
+            
+            var cacheKey = GetCacheKey(entity.Id);
+            SetCache(cacheKey, result);
             
             return result;
         }
 
         /// <summary>
-        /// Gets entities using a specification.
-        /// </summary>
-        /// <param name="specification">The specification.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The entities that match the specification.</returns>
-        public virtual async Task<IReadOnlyList<T>> ListAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
-        {
-            // For specification-based queries, we currently don't cache
-            // In a real-world scenario, you might implement caching based on the specification's unique properties
-            return await _repository.ListAsync(specification, cancellationToken);
-        }
-
-        /// <summary>
-        /// Gets the first entity that matches the specification.
-        /// </summary>
-        /// <param name="specification">The specification.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The first entity that matches the specification.</returns>
-        public virtual async Task<T?> FirstOrDefaultAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
-        {
-            // For specification-based queries, we currently don't cache
-            return await _repository.FirstOrDefaultAsync(specification, cancellationToken);
-        }
-
-        /// <summary>
-        /// Gets the first entity that matches the specification or throws an exception.
-        /// </summary>
-        /// <param name="specification">The specification.</param>
-        /// <param name="throwIfNotFound">If true, throws an exception if no entity matches the specification.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The first entity that matches the specification.</returns>
-        public virtual async Task<T> FirstOrDefaultAsync(ISpecification<T> specification, bool throwIfNotFound, CancellationToken cancellationToken = default)
-        {
-            return await _repository.FirstOrDefaultAsync(specification, throwIfNotFound, cancellationToken);
-        }
-
-        /// <summary>
-        /// Counts entities using a specification.
-        /// </summary>
-        /// <param name="specification">The specification.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The count of entities that match the specification.</returns>
-        public virtual async Task<int> CountAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
-        {
-            // For specification-based queries, we currently don't cache
-            return await _repository.CountAsync(specification, cancellationToken);
-        }
-
-        /// <summary>
-        /// Checks if any entity matches the specification.
-        /// </summary>
-        /// <param name="specification">The specification.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>True if any entity matches the specification.</returns>
-        public virtual async Task<bool> AnyAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
-        {
-            // For specification-based queries, we currently don't cache
-            return await _repository.AnyAsync(specification, cancellationToken);
-        }
-
-        /// <summary>
-        /// Adds an entity to the repository.
+        /// Adds a new entity and invalidates cache.
         /// </summary>
         /// <param name="entity">The entity to add.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The added entity.</returns>
-        public virtual async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
+        public override async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
         {
-            var result = await _repository.AddAsync(entity, cancellationToken);
-            await InvalidateCacheAsync(cancellationToken);
+            var result = await base.AddAsync(entity, cancellationToken);
+            await SaveChangesAsync(cancellationToken);
+            
+            var cacheKey = GetCacheKey(entity.Id);
+            await SetCacheAsync(cacheKey, result, cancellationToken);
+            
             return result;
         }
 
         /// <summary>
-        /// Adds a range of entities to the repository.
-        /// </summary>
-        /// <param name="entities">The entities to add.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        public virtual async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
-        {
-            await _repository.AddRangeAsync(entities, cancellationToken);
-            await InvalidateCacheAsync(cancellationToken);
-        }
-
-        /// <summary>
-        /// Updates an entity in the repository.
+        /// Updates an entity and invalidates cache.
         /// </summary>
         /// <param name="entity">The entity to update.</param>
         /// <returns>The updated entity.</returns>
-        public virtual T Update(T entity)
+        public override T Update(T entity)
         {
-            var result = _repository.Update(entity);
-            InvalidateCacheAsync().GetAwaiter().GetResult();
+            var result = base.Update(entity);
+            SaveChanges();
+            
+            var cacheKey = GetCacheKey(entity.Id);
+            SetCache(cacheKey, result);
+            
             return result;
         }
 
         /// <summary>
-        /// Updates a range of entities in the repository.
-        /// </summary>
-        /// <param name="entities">The entities to update.</param>
-        public virtual void UpdateRange(IEnumerable<T> entities)
-        {
-            _repository.UpdateRange(entities);
-            InvalidateCacheAsync().GetAwaiter().GetResult();
-        }
-
-        /// <summary>
-        /// Deletes an entity from the repository.
+        /// Deletes an entity and invalidates cache.
         /// </summary>
         /// <param name="entity">The entity to delete.</param>
-        /// <returns>The deleted entity.</returns>
-        public virtual T Delete(T entity)
+        public override void Delete(T entity)
         {
-            var result = _repository.Delete(entity);
-            InvalidateCacheAsync().GetAwaiter().GetResult();
-            return result;
-        }
-
-        /// <summary>
-        /// Deletes a range of entities from the repository.
-        /// </summary>
-        /// <param name="entities">The entities to delete.</param>
-        public virtual void DeleteRange(IEnumerable<T> entities)
-        {
-            _repository.DeleteRange(entities);
-            InvalidateCacheAsync().GetAwaiter().GetResult();
-        }
-    }
-
-    /// <summary>
-    /// Implementation of a cached repository with a key.
-    /// </summary>
-    /// <typeparam name="T">The type of entity.</typeparam>
-    /// <typeparam name="TKey">The type of the key.</typeparam>
-    public class CachedRepository<T, TKey> : CachedRepository<T>, ICachedRepository<T, TKey>
-        where T : class, IEntityWithKey<TKey>, IEntity
-        where TKey : IEquatable<TKey>
-    {
-        private readonly IRepository<T, TKey> _repository;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CachedRepository{T, TKey}"/> class.
-        /// </summary>
-        /// <param name="repository">The repository.</param>
-        /// <param name="cache">The cache.</param>
-        public CachedRepository(IRepository<T, TKey> repository, IDistributedCache cache)
-            : base(repository, cache)
-        {
-            _repository = repository;
-        }
-
-        /// <summary>
-        /// Gets an entity by identifier.
-        /// </summary>
-        /// <param name="id">The identifier.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The entity.</returns>
-        public virtual async Task<T?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
-        {
-            var cacheKey = CreateCacheKey("GetById", id);
-            var cachedResult = await GetFromCacheAsync<T>(cacheKey, cancellationToken);
+            var cacheKey = GetCacheKey(entity.Id);
+            RemoveFromCache(cacheKey);
             
-            if (cachedResult != null)
-            {
-                return cachedResult;
-            }
+            base.Delete(entity);
+            SaveChanges();
+        }
 
-            var result = await _repository.GetByIdAsync(id, cancellationToken);
-            if (result != null)
+        /// <summary>
+        /// Deletes an entity by ID and invalidates cache.
+        /// </summary>
+        /// <param name="id">The ID of the entity.</param>
+        public override void Delete(object id)
+        {
+            var cacheKey = GetCacheKey(id);
+            RemoveFromCache(cacheKey);
+            
+            base.Delete(id);
+            SaveChanges();
+        }
+
+        /// <summary>
+        /// Refreshes the cache for an entity by ID.
+        /// </summary>
+        /// <param name="id">The ID of the entity.</param>
+        /// <returns>True if the cache was refreshed, otherwise false.</returns>
+        public bool RefreshCache(object id)
+        {
+            var entity = base.Find(id);
+            
+            if (entity == null)
             {
-                await SetInCacheAsync(cacheKey, result, cancellationToken);
+                return false;
             }
             
-            return result;
+            var cacheKey = GetCacheKey(id);
+            SetCache(cacheKey, entity);
+            
+            return true;
         }
 
         /// <summary>
-        /// Gets an entity by identifier or throws an exception.
+        /// Refreshes the cache for an entity by ID.
         /// </summary>
-        /// <param name="id">The identifier.</param>
+        /// <param name="id">The ID of the entity.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>The entity.</returns>
-        public virtual async Task<T> GetByIdOrThrowAsync(TKey id, CancellationToken cancellationToken = default)
+        /// <returns>True if the cache was refreshed, otherwise false.</returns>
+        public async Task<bool> RefreshCacheAsync(object id, CancellationToken cancellationToken = default)
         {
-            return await _repository.GetByIdOrThrowAsync(id, cancellationToken);
+            var entity = await base.FindAsync(id, cancellationToken);
+            
+            if (entity == null)
+            {
+                return false;
+            }
+            
+            var cacheKey = GetCacheKey(id);
+            await SetCacheAsync(cacheKey, entity, cancellationToken);
+            
+            return true;
         }
 
         /// <summary>
-        /// Deletes an entity from the repository by identifier.
+        /// Refreshes the cache for a collection of entities.
         /// </summary>
-        /// <param name="id">The identifier.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        public virtual async Task DeleteByIdAsync(TKey id, CancellationToken cancellationToken = default)
+        /// <param name="specification">The specification to refresh.</param>
+        /// <returns>True if the cache was refreshed, otherwise false.</returns>
+        public bool RefreshCache(ISpecification<T> specification)
         {
-            await _repository.DeleteByIdAsync(id, cancellationToken);
-            await InvalidateCacheForEntityAsync(id, cancellationToken);
+            var entities = base.GetAll(specification);
+            
+            foreach (var entity in entities)
+            {
+                var cacheKey = GetCacheKey(entity.Id);
+                SetCache(cacheKey, entity);
+            }
+            
+            return true;
         }
 
         /// <summary>
-        /// Invalidates the cache for an entity.
+        /// Refreshes the cache for a collection of entities.
         /// </summary>
-        /// <param name="id">The identifier.</param>
+        /// <param name="specification">The specification to refresh.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        public virtual async Task InvalidateCacheForEntityAsync(TKey id, CancellationToken cancellationToken = default)
+        /// <returns>True if the cache was refreshed, otherwise false.</returns>
+        public async Task<bool> RefreshCacheAsync(ISpecification<T> specification, CancellationToken cancellationToken = default)
         {
-            var cacheKey = CreateCacheKey("GetById", id);
+            var entities = await base.GetAllAsync(specification, cancellationToken);
+            
+            foreach (var entity in entities)
+            {
+                var cacheKey = GetCacheKey(entity.Id);
+                await SetCacheAsync(cacheKey, entity, cancellationToken);
+            }
+            
+            return true;
+        }
+
+        /// <summary>
+        /// Refreshes the entire cache for the entity type.
+        /// </summary>
+        /// <returns>True if the cache was refreshed, otherwise false.</returns>
+        public bool RefreshEntireCache()
+        {
+            var collectionCacheKey = GetCollectionCacheKey();
+            var entities = base.GetAll();
+            
+            foreach (var entity in entities)
+            {
+                var cacheKey = GetCacheKey(entity.Id);
+                SetCache(cacheKey, entity);
+            }
+            
+            return true;
+        }
+
+        /// <summary>
+        /// Refreshes the entire cache for the entity type.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>True if the cache was refreshed, otherwise false.</returns>
+        public async Task<bool> RefreshEntireCacheAsync(CancellationToken cancellationToken = default)
+        {
+            var collectionCacheKey = GetCollectionCacheKey();
+            var entities = await base.GetAllAsync(cancellationToken);
+            
+            foreach (var entity in entities)
+            {
+                var cacheKey = GetCacheKey(entity.Id);
+                await SetCacheAsync(cacheKey, entity, cancellationToken);
+            }
+            
+            return true;
+        }
+
+        /// <summary>
+        /// Removes an item from the cache.
+        /// </summary>
+        /// <param name="id">The ID of the entity.</param>
+        /// <returns>True if the item was removed, otherwise false.</returns>
+        public bool RemoveFromCache(object id)
+        {
+            var cacheKey = GetCacheKey(id);
+            _cache.Remove(cacheKey);
+            
+            return true;
+        }
+
+        /// <summary>
+        /// Removes an item from the cache.
+        /// </summary>
+        /// <param name="id">The ID of the entity.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>True if the item was removed, otherwise false.</returns>
+        public async Task<bool> RemoveFromCacheAsync(object id, CancellationToken cancellationToken = default)
+        {
+            var cacheKey = GetCacheKey(id);
             await _cache.RemoveAsync(cacheKey, cancellationToken);
+            
+            return true;
+        }
+
+        /// <summary>
+        /// Clears the entire cache for the entity type.
+        /// </summary>
+        /// <returns>True if the cache was cleared, otherwise false.</returns>
+        public bool ClearCache()
+        {
+            var collectionCacheKey = GetCollectionCacheKey();
+            _cache.Remove(collectionCacheKey);
+
+            var entities = base.GetAll();
+            
+            foreach (var entity in entities)
+            {
+                var cacheKey = GetCacheKey(entity.Id);
+                _cache.Remove(cacheKey);
+            }
+            
+            return true;
+        }
+
+        /// <summary>
+        /// Clears the entire cache for the entity type.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>True if the cache was cleared, otherwise false.</returns>
+        public async Task<bool> ClearCacheAsync(CancellationToken cancellationToken = default)
+        {
+            var collectionCacheKey = GetCollectionCacheKey();
+            await _cache.RemoveAsync(collectionCacheKey, cancellationToken);
+
+            var entities = await base.GetAllAsync(cancellationToken);
+            
+            foreach (var entity in entities)
+            {
+                var cacheKey = GetCacheKey(entity.Id);
+                await _cache.RemoveAsync(cacheKey, cancellationToken);
+            }
+            
+            return true;
+        }
+
+        /// <summary>
+        /// Gets a cache key for an entity.
+        /// </summary>
+        /// <param name="id">The ID of the entity.</param>
+        /// <returns>The cache key.</returns>
+        protected virtual string GetCacheKey(object id)
+        {
+            return $"{typeof(T).Name}_{id}";
+        }
+
+        /// <summary>
+        /// Gets a cache key for a collection of entities.
+        /// </summary>
+        /// <returns>The cache key.</returns>
+        protected virtual string GetCollectionCacheKey()
+        {
+            return $"{typeof(T).Name}_All";
+        }
+
+        /// <summary>
+        /// Gets an entity from the cache.
+        /// </summary>
+        /// <param name="cacheKey">The cache key.</param>
+        /// <returns>The entity or null.</returns>
+        protected virtual T? GetFromCache(string cacheKey)
+        {
+            var cachedData = _cache.Get(cacheKey);
+            
+            if (cachedData == null)
+            {
+                return null;
+            }
+            
+            return JsonSerializer.Deserialize<T>(cachedData);
+        }
+
+        /// <summary>
+        /// Gets an entity from the cache.
+        /// </summary>
+        /// <param name="cacheKey">The cache key.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The entity or null.</returns>
+        protected virtual async Task<T?> GetFromCacheAsync(string cacheKey, CancellationToken cancellationToken = default)
+        {
+            var cachedData = await _cache.GetAsync(cacheKey, cancellationToken);
+            
+            if (cachedData == null)
+            {
+                return null;
+            }
+            
+            return JsonSerializer.Deserialize<T>(cachedData);
+        }
+
+        /// <summary>
+        /// Sets an entity in the cache.
+        /// </summary>
+        /// <param name="cacheKey">The cache key.</param>
+        /// <param name="entity">The entity.</param>
+        protected virtual void SetCache(string cacheKey, T entity)
+        {
+            var cacheData = JsonSerializer.SerializeToUtf8Bytes(entity);
+            _cache.Set(cacheKey, cacheData, _cacheOptions);
+        }
+
+        /// <summary>
+        /// Sets an entity in the cache.
+        /// </summary>
+        /// <param name="cacheKey">The cache key.</param>
+        /// <param name="entity">The entity.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        protected virtual async Task SetCacheAsync(string cacheKey, T entity, CancellationToken cancellationToken = default)
+        {
+            var cacheData = JsonSerializer.SerializeToUtf8Bytes(entity);
+            await _cache.SetAsync(cacheKey, cacheData, _cacheOptions, cancellationToken);
         }
     }
 }
