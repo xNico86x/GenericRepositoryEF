@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Generic Repository and Unit of Work patterns for Entity Framework Core. Core inte" +
     "rfaces and abstractions.")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c56aa2057f855b2afb24bdff97621b1b096ad597")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9dfd844aa66b680ac9c32bb54bb48976be3e4e24")]
 [assembly: System.Reflection.AssemblyProductAttribute("GenericRepositoryEF.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GenericRepositoryEF.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

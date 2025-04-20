@@ -39,7 +39,7 @@ namespace GenericRepositoryEF.Infrastructure.Extensions
             }
 
             var items = await query.ApplyPaging(pageNumber, pageSize).ToListAsync(cancellationToken);
-            return new PagedResult<T>(items, totalCount, pageNumber, pageSize);
+            return PagedResult<T>.Create(items, totalCount, pageNumber, pageSize);
         }
 
         /// <summary>
