@@ -1,7 +1,7 @@
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Interface for all entities.
+    /// Interface for an entity.
     /// </summary>
     public interface IEntity
     {

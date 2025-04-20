@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace GenericRepositoryEF.Infrastructure.Interceptors
 {
     /// <summary>
-    /// Interceptor to automatically set audit properties on entities.
+    /// Interceptor that automatically updates audit properties when saving changes.
     /// </summary>
     public class AuditSaveChangesInterceptor : SaveChangesInterceptor
     {
@@ -22,61 +22,54 @@ namespace GenericRepositoryEF.Infrastructure.Interceptors
         }
 
         /// <summary>
-        /// Called before SaveChanges is invoked.
+        /// Called when saving changes before any tracking state changes.
         /// </summary>
         /// <param name="eventData">The event data.</param>
-        /// <param name="result">The result of the SaveChanges operation.</param>
-        /// <returns>The result of the SaveChanges operation.</returns>
+        /// <param name="result">The result.</param>
+        /// <returns>The result.</returns>
         public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
         {
-            if (eventData.Context != null)
-            {
-                UpdateAuditableEntities(eventData.Context);
-            }
-
+            UpdateAuditableEntities(eventData.Context);
             return base.SavingChanges(eventData, result);
         }
 
         /// <summary>
-        /// Called before SaveChangesAsync is invoked.
+        /// Called when saving changes asynchronously before any tracking state changes.
         /// </summary>
         /// <param name="eventData">The event data.</param>
-        /// <param name="result">The result of the SaveChangesAsync operation.</param>
-        /// <returns>The result of the SaveChangesAsync operation.</returns>
+        /// <param name="result">The result.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The result.</returns>
         public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
         {
-            if (eventData.Context != null)
-            {
-                UpdateAuditableEntities(eventData.Context);
-            }
-
+            UpdateAuditableEntities(eventData.Context);
             return base.SavingChangesAsync(eventData, result, cancellationToken);
         }
 
-        private void UpdateAuditableEntities(DbContext context)
+        private void UpdateAuditableEntities(DbContext? context)
         {
+            if (context == null)
+            {
+                return;
+            }
+
             var now = DateTime.UtcNow;
             var userId = _currentUserService.UserId;
 
             foreach (var entry in context.ChangeTracker.Entries<IAuditableEntity>())
             {
-                if (entry.State == EntityState.Added)
+                switch (entry.State)
                 {
-                    entry.Entity.CreatedAt = now;
-                    entry.Entity.CreatedBy = userId;
-                }
-                else if (entry.State == EntityState.Modified || HasChangedOwnedEntities(entry))
-                {
-                    entry.Entity.ModifiedAt = now;
-                    entry.Entity.ModifiedBy = userId;
+                    case EntityState.Added:
+                        entry.Entity.CreatedAt = now;
+                        entry.Entity.CreatedBy = userId;
+                        break;
+                    case EntityState.Modified:
+                        entry.Entity.ModifiedAt = now;
+                        entry.Entity.ModifiedBy = userId;
+                        break;
                 }
             }
         }
-
-        private static bool HasChangedOwnedEntities(EntityEntry entry) =>
-            entry.References.Any(r => 
-                r.TargetEntry != null && 
-                r.TargetEntry.Metadata.IsOwned() && 
-                (r.TargetEntry.State == EntityState.Added || r.TargetEntry.State == EntityState.Modified));
     }
 }

@@ -1,7 +1,7 @@
 namespace GenericRepositoryEF.Core.Interfaces
 {
     /// <summary>
-    /// Interface to get the current user information.
+    /// Interface for a service that provides information about the current user.
     /// </summary>
     public interface ICurrentUserService
     {
