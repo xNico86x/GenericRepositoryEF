@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace GenericRepositoryEF.Extensions
+namespace GenericRepositoryEF.Extensions.Extensions
 {
     /// <summary>
     /// Extension methods for <see cref="DbContext"/>.
@@ -136,7 +136,7 @@ namespace GenericRepositoryEF.Extensions
                 if (entityEntry.Entity is ISoftDelete softDelete)
                 {
                     softDelete.IsDeleted = true;
-                    softDelete.DeletedDate = DateTime.UtcNow;
+                    softDelete.DeletedAt = DateTime.UtcNow;
                     softDelete.DeletedBy = userId;
                 }
             }

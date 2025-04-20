@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using System.Reflection;
 
-namespace GenericRepositoryEF.Extensions
+namespace GenericRepositoryEF.Extensions.DependencyInjection
 {
     /// <summary>
     /// Extension methods for <see cref="IServiceCollection"/>.
@@ -24,10 +24,10 @@ namespace GenericRepositoryEF.Extensions
         /// <returns>The service collection for method chaining.</returns>
         public static IServiceCollection AddGenericRepositories<TContext>(
             this IServiceCollection services,
-            Action<RepositoryOptions>? configure = null) 
+            Action<ServiceConfigurationOptions>? configure = null) 
             where TContext : DbContext
         {
-            var options = new RepositoryOptions();
+            var options = new ServiceConfigurationOptions();
             configure?.Invoke(options);
             
             // Register base repository services
@@ -64,7 +64,7 @@ namespace GenericRepositoryEF.Extensions
         public static IServiceCollection AddGenericRepositoriesFromAssembly<TContext>(
             this IServiceCollection services,
             Assembly assembly,
-            Action<RepositoryOptions>? configure = null) 
+            Action<ServiceConfigurationOptions>? configure = null) 
             where TContext : DbContext
         {
             services.AddGenericRepositories<TContext>(configure);
@@ -117,7 +117,7 @@ namespace GenericRepositoryEF.Extensions
         public static IServiceCollection AddGenericRepositoriesWithSqlServer<TContext>(
             this IServiceCollection services,
             string connectionString,
-            Action<RepositoryOptions>? configure = null) 
+            Action<ServiceConfigurationOptions>? configure = null) 
             where TContext : DbContext
         {
             services.AddDbContext<TContext>(options =>
@@ -137,7 +137,7 @@ namespace GenericRepositoryEF.Extensions
         public static IServiceCollection AddGenericRepositoriesWithPostgreSQL<TContext>(
             this IServiceCollection services,
             string connectionString,
-            Action<RepositoryOptions>? configure = null) 
+            Action<ServiceConfigurationOptions>? configure = null) 
             where TContext : DbContext
         {
             services.AddDbContext<TContext>(options =>
@@ -157,7 +157,7 @@ namespace GenericRepositoryEF.Extensions
         public static IServiceCollection AddGenericRepositoriesWithSQLite<TContext>(
             this IServiceCollection services,
             string connectionString,
-            Action<RepositoryOptions>? configure = null) 
+            Action<ServiceConfigurationOptions>? configure = null) 
             where TContext : DbContext
         {
             services.AddDbContext<TContext>(options =>
@@ -177,7 +177,7 @@ namespace GenericRepositoryEF.Extensions
         public static IServiceCollection AddGenericRepositoriesWithInMemoryDatabase<TContext>(
             this IServiceCollection services,
             string databaseName,
-            Action<RepositoryOptions>? configure = null) 
+            Action<ServiceConfigurationOptions>? configure = null) 
             where TContext : DbContext
         {
             services.AddDbContext<TContext>(options =>

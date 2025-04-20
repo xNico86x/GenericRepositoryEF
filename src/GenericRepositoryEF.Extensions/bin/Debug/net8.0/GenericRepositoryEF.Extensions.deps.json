@@ -12,6 +12,7 @@
           "GenericRepositoryEF.Infrastructure": "1.0.0",
           "Microsoft.EntityFrameworkCore": "9.0.4",
           "Microsoft.EntityFrameworkCore.InMemory": "9.0.4",
+          "Microsoft.EntityFrameworkCore.Relational": "9.0.4",
           "Microsoft.EntityFrameworkCore.SqlServer": "9.0.4",
           "Microsoft.EntityFrameworkCore.Sqlite": "9.0.4",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "9.0.4"
